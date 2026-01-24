@@ -5,7 +5,6 @@ export const AppContext = createContext();
 
 const initialUserData = null;
 
-
 export const AppContextProvider =({children}) => {
 
     const [userData, setUserData] = useState(initialUserData);
