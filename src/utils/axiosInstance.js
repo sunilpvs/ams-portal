@@ -25,7 +25,7 @@ axiosInstance.interceptors.response.use(
         if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
             try {
-                await refreshAxios.get("/auth/refresh.php?portal=vms");
+                await refreshAxios.get("/auth/refresh.php?portal=ams");
 
                 return axiosInstance(originalRequest);
             } catch (refreshError) {

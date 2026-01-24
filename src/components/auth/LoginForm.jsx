@@ -1,7 +1,7 @@
 const LoginForm = () => {
   // const subdomain = window.location.hostname.split(".")[0];
 
-  const authURL = process.env.REACT_APP_API_BASE_URL + "auth/auth.php?portal=vms";
+  const authURL = process.env.REACT_APP_API_BASE_URL + "auth/auth.php?portal=ams";
 
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100">

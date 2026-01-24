@@ -28,7 +28,7 @@ export const logoutUser = async () => {
 
 export const checkAuth = async () => {
   try {
-    const auth_response = await axiosInstance.get("auth/check.php?portal=vms");
+    const auth_response = await axiosInstance.get("auth/check.php?portal=ams");
 
     if (auth_response?.status === 200) {
       try {
