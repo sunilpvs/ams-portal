@@ -10,6 +10,7 @@ export const AppContextProvider =({children}) => {
     const [userData, setUserData] = useState(initialUserData);
 
 
+    
     useEffect(() => {
         const fetchUser = async () => {
             try{
