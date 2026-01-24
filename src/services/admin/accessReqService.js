@@ -9,7 +9,7 @@ export const sendAccessRequest = (payload) => {
 }
 
 export const getVMSAccessStatus = () => {
-    return axiosInstance.get(`auth/access-status.php?type=vms`);
+    return axiosInstance.get(`auth/access-status.php?type=ams`);
 }
 
 export const getEmailFromToken = () => {

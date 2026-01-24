@@ -6,5 +6,5 @@ export const getUserDetails =  () => {
 }
 
 export const getVmsUserRole = () => {
-    return axiosInstance.get('api/user/role?type=vms');
+    return axiosInstance.get('api/user/role?type=ams');
 }

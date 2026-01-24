@@ -17,6 +17,6 @@ export const getVmsActivityLogs = (page, limit, module=null, username=null, from
 
     if (toDate) params.append("toDate", toDate);
 
-    return axiosInstance.get(`/api/logs/activity?type=vms&${params.toString()}`);
+    return axiosInstance.get(`/api/logs/activity?type=ams&${params.toString()}`);
 
 };
