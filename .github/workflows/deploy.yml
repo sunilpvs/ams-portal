@@ -125,8 +125,13 @@ jobs:
                         DEPLOY_DIR="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions"
                         cd "$DEPLOY_DIR"
                         
-                        if [ ! -d "$DEPLOY_DIR" ] && if [ "$DEPLOY_DIR" == "/home//" ] ; then
+                        if [ ! -d "$DEPLOY_DIR" ]; then
                             echo "No versions directory found. Skipping cleanup."
+                            exit 0
+                        fi
+
+                        if [ "$DEPLOY_DIR" == "/" ] || [ -z "$DEPLOY_DIR" ] ||  [ "$DEPLOY_DIR" == "/home" ] || [ "$DEPLOY_DIR" == "/home/" ]; then
+                            echo "Error: Invalid deployment directory. Aborting cleanup."
                             exit 1
                         fi
 
