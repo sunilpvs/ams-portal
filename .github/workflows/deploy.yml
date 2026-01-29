@@ -130,7 +130,7 @@ jobs:
                             exit 1
                         fi
 
-                        ls -1dt version-* | tail -n +6 | xargs -I {} rm -r  "{}"
+                        ls -1dt version-* | tail -n +6 | xargs -I {} rm -rf  "{}"
                         echo "Cleaned up old versions, kept the latest 5 versions."
 
 
