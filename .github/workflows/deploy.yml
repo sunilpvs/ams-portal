@@ -38,8 +38,12 @@ jobs:
               run: |
                     echo "Bulding react app with API URL: $REACT_APP_API_BASE_URL"
                     CI=false npm run build
+
+            - name: Create Deployment marker file
+              run: |
+                        echo "${GITHUB_SHA}" > build/.deploy-marker
             
-            # upload in versions folder like versions/version-1, version-2
+            # Upload in versions folder like versions/version-1, version-2
             - name: Upload release
               uses: appleboy/scp-action@v0.1.6
               with:
@@ -49,7 +53,34 @@ jobs:
                 source: "build/*"
                 target: "/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
                
-            - name: Activate Release 
+
+            - name: Check the Deployment marker file
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.CPANEL_HOST }}
+                  username: ${{ secrets.CPANEL_USER }}
+                  key: ${{ secrets.CPANEL_SSH_KEY }}
+                  script: |
+                        DEPLOY_PATH="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
+                        if [ -f "$DEPLOY_PATH/.deploy-marker" ]; then
+                            echo "Deployment marker file exists in $DEPLOY_PATH"
+                        else
+                            echo "Deployment marker file is missing in $DEPLOY_PATH"
+                            exit 1
+                        fi
+
+            - name: Set the permissions to the deployed files
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.CPANEL_HOST }}
+                  username: ${{ secrets.CPANEL_USER }}
+                  key: ${{ secrets.CPANEL_SSH_KEY }}
+                  script: |
+                        DEPLOY_PATH="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
+                        chmod -R 755 "$DEPLOY_PATH"
+                        echo "Set permissions to 755 for all files in $DEPLOY_PATH"
+
+            - name: Activate Release and Set Current Symlink and Permissions
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.CPANEL_HOST }}
@@ -63,7 +94,47 @@ jobs:
                             mkdir -p "versions"
                         fi
 
-                        ln -sfn "versions/version-${{ github.run_number }}/build" current/build
+                        ln -sfn "versions/version-${{ github.run_number }}/build" current
+                        chmod -R 755 "current"
                         echo "Activated version-${{ github.run_number }} as the current release."
 
+            - name: Final Deployment Check
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                  host: ${{ secrets.CPANEL_HOST }}
+                  username: ${{ secrets.CPANEL_USER }}
+                  key: ${{ secrets.CPANEL_SSH_KEY }}
+                  script: |
+                        DEPLOY_PATH="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/current"
+                        MARKER_FILE="$DEPLOY_PATH/.deploy-marker"
+                        if [ -f "$MARKER_FILE" ] && grep -q "${GITHUB_SHA}" "$MARKER_FILE"; then
+                            echo "Deployment successful. Files are present in $DEPLOY_PATH"
+                        else
+                            echo "Deployment Failed. No files found in $DEPLOY_PATH"
+                            exit 1
+                        fi
+
+            - name: Clean up old versions (Keep latest 5)
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                    host: ${{ secrets.CPANEL_HOST }}
+                    username: ${{ secrets.CPANEL_USER }}
+                    key: ${{ secrets.CPANEL_SSH_KEY }}
+                    script: |
+                        set -e
+                        DEPLOY_DIR="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions"
+                        cd "$DEPLOY_DIR"
+                        
+                        if [ ! -d "$DEPLOY_DIR" ] && if [ "$DEPLOY_PATH" == "/home//" ] ; then
+                            echo "No versions directory found. Skipping cleanup."
+                            exit 1
+                        fi
+
+                        ls -1dt version-* | tail -n +6 | xargs -I {} rm -r  "{}"
+                        echo "Cleaned up old versions, kept the latest 5 versions."
+
+
+              
+
             
+                
