@@ -49,7 +49,7 @@ jobs:
                 source: "build/*"
                 target: "/home/${{ secrets.CPANEL_USERNAME }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
                
-            - name: Activate Release
+            - name: Activate Release 
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.CPANEL_HOST }}
