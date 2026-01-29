@@ -125,7 +125,7 @@ jobs:
                         DEPLOY_DIR="/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions"
                         cd "$DEPLOY_DIR"
                         
-                        if [ ! -d "$DEPLOY_DIR" ] && if [ "$DEPLOY_PATH" == "/home//" ] ; then
+                        if [ ! -d "$DEPLOY_DIR" ] && if [ "$DEPLOY_DIR" == "/home//" ] ; then
                             echo "No versions directory found. Skipping cleanup."
                             exit 1
                         fi
