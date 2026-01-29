@@ -44,20 +44,20 @@ jobs:
               uses: appleboy/scp-action@v0.1.6
               with:
                 host: ${{ secrets.CPANEL_HOST }}
-                username: ${{ secrets.CPANEL_USERNAME }}
+                username: ${{ secrets.CPANEL_USER }}
                 key: ${{ secrets.CPANEL_SSH_KEY }}
                 source: "build/*"
-                target: "/home/${{ secrets.CPANEL_USERNAME }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
+                target: "/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}/versions/version-${{ github.run_number }}"
                
             - name: Activate Release 
               uses: appleboy/ssh-action@v1.0.3
               with:
                   host: ${{ secrets.CPANEL_HOST }}
-                  username: ${{ secrets.CPANEL_USERNAME }}
+                  username: ${{ secrets.CPANEL_USER }}
                   key: ${{ secrets.CPANEL_SSH_KEY }}
                   script: |
                         set -e
-                        cd "/home/${{ secrets.CPANEL_USERNAME }}/${{ secrets.DEPLOY_DIR }}"
+                        cd "/home/${{ secrets.CPANEL_USER }}/${{ secrets.DEPLOY_DIR }}"
                         if [ ! -d "versions/version-${{ github.run_number }}" ]; then
                             echo "Versions directory does not exist. Creating it now."
                             mkdir -p "versions"
