@@ -22,7 +22,7 @@ const ReqAccess = () => {
 
         try {
             const payload = {
-                requested_module: 4,
+                requested_module: 5, // Assuming 5 corresponds to AMS Portal
             };
             const response = await sendAccessRequest(payload);
             console.log("Access request response:", response);
@@ -81,7 +81,7 @@ const ReqAccess = () => {
                         variant="body1"
                         sx={{ mb: 3, color: "#444", fontSize: "1.1rem" }}
                     >
-                        You currently do not have access to the Vendor Management System (VMS) Portal.
+                        You currently do not have access to the Asset Management System (AMS) Portal.
                     </Typography>
 
                     {success ? (

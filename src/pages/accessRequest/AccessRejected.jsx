@@ -46,7 +46,7 @@ const AccessRejected = () => {
                         variant="body1"
                         sx={{ mb: 3, color: "#444", fontSize: "1.1rem" }}
                     >
-                        Unfortunately, your access request to the Vendor Management System (VMS) Portal was rejected by the IT administrator.
+                        Unfortunately, your access request to the Asset Management System (AMS) Portal was rejected by the IT administrator.
                     </Typography>
 
                     <Typography
