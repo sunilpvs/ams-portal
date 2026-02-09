@@ -19,9 +19,6 @@ import DashboardLayout from "./components/DashboardLayout";
 import UserProfile from "./pages/profile/UserProfile";
 import ActivityLog from "./pages/activity/ActivityLog";
 
-
-
-
 import AccessRejected from "./pages/accessRequest/AccessRejected";
 import ReqAccess from "./pages/accessRequest/ReqAccess";
 import AccessPending from "./pages/accessRequest/AccessPending";
