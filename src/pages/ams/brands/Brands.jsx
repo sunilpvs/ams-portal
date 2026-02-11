@@ -1,71 +1,134 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import BrandsForm from "./BrandsForm";
 import BrandsTable from "./BrandsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
 import * as XLSX from "xlsx";
+import {
+  addAssetBrand,
+  deleteAssetBrand,
+  editAssetBrand,
+  getPaginatedAssetBrands,
+} from "../../../services/ams/assetBrandService";
 
 const Brands = () => {
   const [allBrands, setAllBrands] = useState([]);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef(null);
 
   /* ---------------- FETCH BRANDS ---------------- */
+  const extractBrandsResponse = (response) => {
+    const payload = response?.data;
+    const data = payload?.asset_brands ?? payload;
+
+    const list =
+      data?.data ??
+      data?.brands ??
+      data?.items ??
+      data?.rows ??
+      (Array.isArray(data) ? data : []);
+
+    const total =
+      payload?.total ??
+      payload?.count ??
+      payload?.totalCount ??
+      payload?.meta?.total ??
+      payload?.pagination?.total ??
+      data?.total ??
+      data?.count ??
+      data?.totalCount ??
+      data?.meta?.total ??
+      data?.pagination?.total ??
+      (Array.isArray(list) ? list.length : 0);
+
+    return { list, total };
+  };
+
+  const fetchBrands = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getPaginatedAssetBrands(page, limit);
+      const { list, total } = extractBrandsResponse(response);
+      setAllBrands(list);
+      setTotalCount(total);
+    } catch (error) {
+      // console.error("Failed to fetch brands:", error);
+      setAllBrands([]);
+      setTotalCount(0);
+      toast.error(error?.response?.data?.error || "Failed to load brands");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit]);
+
   useEffect(() => {
-    // Temporary static data (since no service)
-    setAllBrands([
-      { id: 1, name: "Nike" },
-      { id: 2, name: "Adidas" },
-      { id: 3, name: "Puma" },
-    ]);
-  }, []);
+    fetchBrands();
+  }, [fetchBrands]);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = (id) => {
-    setAllBrands((prev) => prev.filter((brand) => brand.id !== id));
-    toast.success("Brand deleted successfully");
+  const handleDelete = async (id) => {
+    try {
+      await deleteAssetBrand(id);
+      toast.success("Brand deleted successfully");
+
+      if (allBrands.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      } else {
+        fetchBrands();
+      }
+    } catch (error) {
+      // console.error("Failed to delete brand:", error);
+      toast.error(error?.response?.data?.error || "Failed to delete brand");
+    }
   };
 
   /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = (formData) => {
-    if (editMode) {
-      setAllBrands((prev) =>
-        prev.map((brand) =>
-          brand.id === formData.id ? formData : brand
-        )
-      );
-      toast.success("Brand updated successfully");
-    } else {
-      const newBrand = {
-        ...formData,
-        id: Date.now(),
-      };
-      setAllBrands((prev) => [...prev, newBrand]);
-      toast.success("Brand added successfully");
-    }
+  const handleSubmit = async (formData) => {
+    const payload = {
+      brand: formData.brand,
+    };
 
-    setOpenForm(false);
-    setSelectedBrand(null);
-    setEditMode(false);
+    try {
+      if (editMode && formData.id) {
+        await editAssetBrand(formData.id, payload);
+        toast.success("Brand updated successfully");
+      } else {
+        await addAssetBrand(payload);
+        toast.success("Brand added successfully");
+      }
+
+      setOpenForm(false);
+      setSelectedBrand(null);
+      setEditMode(false);
+      fetchBrands();
+    } catch (error) {
+      // console.error("Failed to save brand:", error);
+      toast.error(error?.response?.data?.error || "Failed to save brand");
+    }
   };
 
   /* ---------------- EDIT ---------------- */
   const handleEdit = (brand) => {
-    setSelectedBrand(brand);
+    setSelectedBrand({
+      ...brand,
+      brand: brand.brand ?? brand.name ?? "",
+    });
     setEditMode(true);
     setOpenForm(true);
   };
 
   /* ---------------- ADD ---------------- */
   const handleAdd = () => {
-    setSelectedBrand({ name: "" });
+    setSelectedBrand({ brand: "" });
     setEditMode(false);
     setOpenForm(true);
   };
@@ -75,31 +138,37 @@ const Brands = () => {
     fileInputRef.current.click();
   };
 
-const handleFileChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    const data = new Uint8Array(evt.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const importedBrands = XLSX.utils.sheet_to_json(sheet).map((b, i) => ({
-      id: Date.now() + i, // unique id
-      ...b,
-    }));
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const importedBrands = XLSX.utils.sheet_to_json(sheet);
 
-    const updatedBrands = [...allBrands, ...importedBrands];
-    setAllBrands(updatedBrands);
-    localStorage.setItem("brands", JSON.stringify(updatedBrands)); // persist
-
-    toast.success("Brands imported successfully");
-
-    e.target.value = ""; // reset file input
+      try {
+        await Promise.all(
+          importedBrands.map((item) =>
+            addAssetBrand({
+              brand: item.brand ?? item.name ?? "",
+            })
+          )
+        );
+        toast.success("Brands imported successfully");
+        fetchBrands();
+      } catch (error) {
+        // console.error("Failed to import brands:", error);
+        toast.error(error?.response?.data?.error || "Failed to import brands");
+      } finally {
+        e.target.value = "";
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
-  reader.readAsArrayBuffer(file);
-};
 
 
 
@@ -145,6 +214,7 @@ const handleFileChange = async (e) => {
 
           <BrandsTable
             brands={allBrands}
+            totalCount={totalCount}
             deleteBrand={handleDelete}
             editBrand={handleEdit}
             currentPage={page}
@@ -153,6 +223,7 @@ const handleFileChange = async (e) => {
             onLimitChange={setLimit}
             onSearch={setSearchTerm}
             searchTerm={searchTerm}
+            loading={loading}
           />
 
           {openForm && (

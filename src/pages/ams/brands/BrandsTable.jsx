@@ -7,6 +7,7 @@ import { saveAs } from "file-saver";
 
 function BrandsTable({
   brands,
+  totalCount,
   deleteBrand,
   editBrand,
   currentPage,
@@ -15,6 +16,7 @@ function BrandsTable({
   onLimitChange,
   onSearch,
   searchTerm,
+  loading,
 }) {
   const [sortConfig, setSortConfig] = useState({
     key: "brand",
@@ -23,7 +25,9 @@ function BrandsTable({
 
   /* -------------------- FILTER -------------------- */
   const filteredBrands = brands.filter((brand) =>
-    (brand.brand || "").toLowerCase().includes(searchTerm.toLowerCase())
+    (brand.brand || brand.name || "")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   );
 
   /* -------------------- SORT -------------------- */
@@ -31,8 +35,8 @@ function BrandsTable({
     const key = sortConfig.key;
     const dir = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue = (a[key] || "").toLowerCase();
-    const bValue = (b[key] || "").toLowerCase();
+    const aValue = (a[key] || a.brand || a.name || "").toLowerCase();
+    const bValue = (b[key] || b.brand || b.name || "").toLowerCase();
 
     if (aValue < bValue) return -1 * dir;
     if (aValue > bValue) return 1 * dir;
@@ -40,13 +44,12 @@ function BrandsTable({
   });
 
   /* -------------------- PAGINATION -------------------- */
-  const totalPages = Math.ceil(sortedBrands.length / itemsPerPage) || 1;
+  const totalItems = Number.isFinite(totalCount) && totalCount > 0
+    ? totalCount
+    : sortedBrands.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const paginatedBrands = sortedBrands.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedBrands = sortedBrands;
 
   const goToPage = (pageNum) => {
     if (pageNum >= 1 && pageNum <= totalPages) {
@@ -77,7 +80,7 @@ function BrandsTable({
   const handleExportExcel = () => {
     const exportData = sortedBrands.map((brand, index) => ({
       "Sr. No.": index + 1,
-      Brand: brand.brand,
+      Brand: brand.brand || brand.name || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -167,7 +170,13 @@ function BrandsTable({
             </thead>
 
             <tbody>
-  {paginatedBrands.length === 0 ? (
+  {loading ? (
+    <tr>
+      <td colSpan="3" className="text-muted">
+        Loading brands...
+      </td>
+    </tr>
+  ) : paginatedBrands.length === 0 ? (
     <tr>
       <td colSpan="3" className="text-muted">
         No brands found.
@@ -177,7 +186,7 @@ function BrandsTable({
     paginatedBrands.map((data, index) => (
       <tr key={data.id}>
         <td>{startIndex + index + 1}</td>
-        <td>{data.name}</td>
+        <td>{data.brand || data.name}</td>
         <td>
           <button
             className="btn btn-sm btn-outline-primary me-2"
@@ -201,12 +210,13 @@ function BrandsTable({
         </div>
 
         {/* PAGINATION */}
+        {totalPages > 1 && (
 <div className="d-flex flex-wrap justify-content-between align-items-center mt-3">
 
   {/* Showing Text */}
   <div className="text-nowrap">
     <strong style={{ color: "#000" }}>
-      Showing {paginatedBrands.length} of {sortedBrands.length} brands
+      Showing {paginatedBrands.length} of {totalItems} brands
     </strong>
   </div>
 
@@ -244,6 +254,7 @@ function BrandsTable({
   </div>
 
 </div>
+  )}
       </div>
     </Box>
   );
@@ -252,6 +263,7 @@ function BrandsTable({
 /* -------------------- PROP TYPES -------------------- */
 BrandsTable.propTypes = {
   brands: PropTypes.array.isRequired,
+  totalCount: PropTypes.number.isRequired,
   deleteBrand: PropTypes.func.isRequired,
   editBrand: PropTypes.func.isRequired,
   currentPage: PropTypes.number.isRequired,
@@ -260,6 +272,7 @@ BrandsTable.propTypes = {
   onLimitChange: PropTypes.func.isRequired,
   onSearch: PropTypes.func.isRequired,
   searchTerm: PropTypes.string.isRequired,
+  loading: PropTypes.bool.isRequired,
 };
 
 export default BrandsTable;

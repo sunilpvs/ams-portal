@@ -20,7 +20,7 @@ import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import { useProSidebar } from "react-pro-sidebar";
 import { logoutUser } from "../../services/auth/auth";
-import { getSubmittedRfqCount } from "../../services/vms/dashboardCountService";
+
 
 const Topbar = () => {
   const theme = useTheme();
@@ -31,7 +31,6 @@ const Topbar = () => {
 
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
-  const [submittedRfqCount, setSubmittedRfqCount] = useState(0);
 
   const handleUserMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -60,23 +59,7 @@ const Topbar = () => {
     navigate("/rfq-list");
   };
 
-  // refresh every 30 seconds
-  useEffect(() => {
-    const response = async () => {
-      try {
-        const rfqCountResponse = await getSubmittedRfqCount();
-        setSubmittedRfqCount(rfqCountResponse.data.submitted_count || 0);
-      }
-      catch (error) {
-        console.error("Error fetching submitted RFQ count:", error);
-      }
-    };
-    response();
-    const interval = setInterval(response, 30000); // 30 seconds
-    return () => clearInterval(interval);
-  },
 
-    []);
 
   return (
     <Box display="flex" justifyContent="space-between" p={2}>
@@ -116,7 +99,7 @@ const Topbar = () => {
         {/* Notifications with badge */}
         <IconButton onClick={handleNotificationClick}>
           <Badge
-            badgeContent={submittedRfqCount}
+            badgeContent={4} // Example: 4 unread notifications
             color="error"
             showZero // ✅ Always show badge
           >

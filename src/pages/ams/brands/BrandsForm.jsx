@@ -1,10 +1,16 @@
 import { useState, useEffect } from "react";
 
 const BrandsForm = ({ data, add, close, editMode }) => {
-  const [formData, setFormData] = useState(data || {});
+  const [formData, setFormData] = useState({
+    ...data,
+    brand: data?.brand ?? data?.name ?? "",
+  });
 
   useEffect(() => {
-    setFormData(data || {});
+    setFormData({
+      ...data,
+      brand: data?.brand ?? data?.name ?? "",
+    });
   }, [data]);
 
   const handleChange = (e) => {
@@ -19,9 +25,7 @@ const BrandsForm = ({ data, add, close, editMode }) => {
     e.preventDefault();
 
     const payload = {
-      name: formData.name,
-      code: formData.code || "",
-      description: formData.description || "",
+      brand: (formData.brand || "").trim(),
     };
 
     if (formData.id) {
@@ -57,8 +61,8 @@ const BrandsForm = ({ data, add, close, editMode }) => {
             <div className="modal-body">
               <input
                 type="text"
-                name="name"
-                value={formData.name || ""}
+                name="brand"
+                value={formData.brand || ""}
                 onChange={handleChange}
                 placeholder="Brand Name"
                 className="form-control mb-3"
