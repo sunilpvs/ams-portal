@@ -58,105 +58,19 @@ const Dashboard = () => {
         <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
       </Box>
 
-      {/* GRID & STATBOXES */}
+     {/* GRID & STATBOXES */}
       <Grid container rowSpacing={2} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
         {/* Pending Access Requests */}
-        <Grid xs={12} sm={6} md={4}>
-          <Box
-    
-            backgroundColor={colors.primary[400]}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="16px"
-          >
-            <StatBox
-              title={String(submittedRfqCount ?? 0)}
-              subtitle="Pending RFQ Requests"
-              icon={
-                <VpnKeyOutlinedIcon
-                  sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-                />
-              }
-            />
-          </Box>
-        </Grid>
+       
 
-        {/* Active Vendor Count */}
-        <Grid xs={12} sm={6} md={4}>
-          <Box
-          
-            backgroundColor={colors.primary[400]}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            borderRadius="16px"
-          >
-            <StatBox
-              title={String(activeVendorCount ?? 0)}
-              subtitle="Active Vendor Count"
-              icon={
-                <GroupOutlinedIcon
-                  sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-                />
-              }
-            />
-          </Box>
-        </Grid>
 
-        {/* Total Reports */}
-        <Grid xs={12} sm={6} md={4}>
-          <Box
-          
-            backgroundColor={colors.primary[400]}
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-          >
-            <StatBox
-              title={String(entityCount ?? 0)}
-              subtitle="Total Reports"
-              icon={
-                <TrafficIcon
-                  sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-                />
-              }
-            />
-          </Box>
-        </Grid>
+       
 
         {/* EXTRA BOXES */}
         {[
-          {
-            title: "RFI List",
-            desc: "View and manage all Financial and Functional Interface records easily.",
-            route: "/rfq-list",
-          },
-          {
-            title: "Create RFI",
-            desc: "Initiate a new Request For Information and track its progress.",
-            route: "/initiate-vendor",
-          },
-          {
-            title: "Review RFI",
-            desc: "Access pending RFIs for review and take necessary actions.",
-            route: "/review-vendor",
-          },
-          {
-            title: "Vendors List",
-            desc: "Explore and manage all registered vendors in one place.",
-            route: "/vendor-list",
-          },
-          {
-            title: "Vendor RFI List",
-            desc: "View all Request For Quotation submissions and their statuses.",
-            route: "/vendor-rfqs",
-          },
-          {
-            title: "Reports --> Under Development",
-            desc: "Generate, download, and analyze detailed business reports.",
-            route: "#",
-          },
+         
+        
+      
         ].map((item, index) => (
           <Grid xs={12} sm={6} md={4} key={index}>
             <Box

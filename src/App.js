@@ -18,17 +18,13 @@ import { Toaster } from "react-hot-toast";
 import DashboardLayout from "./components/DashboardLayout";
 import UserProfile from "./pages/profile/UserProfile";
 import ActivityLog from "./pages/activity/ActivityLog";
-
 import AccessRejected from "./pages/accessRequest/AccessRejected";
 import ReqAccess from "./pages/accessRequest/ReqAccess";
 import AccessPending from "./pages/accessRequest/AccessPending";
-import VendorList from "./pages/vms/VendorList";
 
-import RfqList from "./pages/vms/RfqList";
-import VmsRequest from "./pages/vms/VmsRequest";
-import CreateRfq from "./pages/vms/CreateRfq";
-import RfqFormData from "./pages/vms/RfqFormData";
-import VendorRfqPage from "./pages/vms/VendorRfqsPage";
+
+import Brands from "./pages/ams/brands/Brands";
+
 import NotFound404 from "./pages/error/404NotFound";
 
 
@@ -71,18 +67,7 @@ const AppRoutes = () => (
             <Route path="calendar" element={<Calendar />} />
             <Route path="profile" element={<UserProfile />} />
             <Route path="activity" element={<ActivityLog />} />
-
-            <Route path="initiate-vendor" element={<CreateRfq />} />
-            <Route path="request-vendor" element={<VmsRequest />} />
-            <Route path="rfq-list" element={<RfqList />} />
-            <Route path="rfqs" element={<RfqFormData />} />
-            <Route path="/rfqs/:reference_id" element={<RfqFormData />} />
-            <Route path="/review-vendor/:reference_id" element={<VmsRequest />} />
-            <Route path="review-vendor" element={<VmsRequest />} />
-            <Route path="vendor-list" element={<VendorList />} />
-            <Route path="vendor-rfqs" element={<VendorRfqPage />} />
-            <Route path="vendor-rfqs/:vendor_code" element={<VendorRfqPage />} />
-
+             <Route path="brands" element={<Brands />} />
         </Route>
 
         {/* Catch-all */}

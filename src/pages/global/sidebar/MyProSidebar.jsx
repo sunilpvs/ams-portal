@@ -21,6 +21,13 @@ import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import RequestQuoteOutlinedIcon from '@mui/icons-material/RequestQuoteOutlined';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import ReplayIcon from "@mui/icons-material/Replay";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import BrandingWatermarkOutlinedIcon from "@mui/icons-material/BrandingWatermarkOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import CategoryOutlinedIcon from "@mui/icons-material/CategoryOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
     const theme = useTheme();
@@ -189,52 +196,104 @@ const MyProSidebar = () => {
 
                     <Box paddingLeft={collapsed ? undefined : "10%"}>
                         <Item
-                            title="VMS Dashboard"
+                            title="AMS Dashboard"
                             to="/"
                             icon={<HomeOutlinedIcon />}
                             selected={selected}
                             setSelected={setSelected}
                         />
 
-                        <Item
-                            title="RFI List"
-                            to="/rfq-list"
-                            icon={<RequestQuoteOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
-                        <Item
-                            title="Create RFI"
-                            to="/initiate-vendor"
-                            icon={<PersonAddAltIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
-                        <Item
-                            title="Review Pending RFIs"
-                            to="/review-vendor"
-                            icon={<HowToRegIcon />} // or use <FactCheckIcon />
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
-                   
-                        <Item
-                            title="Vendors List"
-                            to="/vendor-list"
-                            icon={<PeopleAltOutlinedIcon />}   // ✅ New icon here
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
+                    
 
-                      
 
-                        <Item
-                            title="Reports"
-                            to="#"
-                            icon={<BarChartOutlinedIcon />}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
+
+  <Typography
+  variant="subtitle2"
+  sx={{
+    mt: 3,
+    mb: 1,
+    ml: 1,
+    color: colors.grey[300],
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    fontSize: "18px",
+  }}
+>
+  Asset Configurations
+</Typography>
+
+<MenuItem
+  icon={<BrandingWatermarkOutlinedIcon />}
+  routerLink={<Link to="/brands" />}
+>
+  Brands
+</MenuItem>
+
+<MenuItem
+  icon={<AssignmentOutlinedIcon />}
+  routerLink={<Link to="/asset-config/assignment-types" />}
+>
+  Assignment Types
+</MenuItem>
+
+<MenuItem
+  icon={<LayersOutlinedIcon />}
+  routerLink={<Link to="/asset-config/asset-groups" />}
+>
+  Asset Groups
+</MenuItem>
+
+<MenuItem
+  icon={<CategoryOutlinedIcon />}
+  routerLink={<Link to="/asset-config/asset-types" />}
+>
+  Asset Types
+</MenuItem>
+
+<MenuItem
+  icon={<CategoryOutlinedIcon />}
+  routerLink={<Link to="/asset-config/asset-category" />}
+>
+  Asset Category
+</MenuItem>
+
+<MenuItem
+  icon={<Inventory2OutlinedIcon />}
+  routerLink={<Link to="/asset-config/asset-models" />}
+>
+  Asset Models
+</MenuItem>
+
+
+  <Typography
+  variant="subtitle2"
+  sx={{
+    mt: 3,
+    mb: 1,
+    ml: 1,
+    color: colors.grey[300],
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    fontSize: "18px",
+  }}
+>
+  Assets
+</Typography>
+
+<MenuItem
+  icon={<Inventory2OutlinedIcon />}
+  routerLink={<Link to="/assets/info" />}
+>
+  Asset Info
+</MenuItem>
+
+<MenuItem
+  icon={<AssignmentOutlinedIcon />}
+  routerLink={<Link to="/assets/assignment" />}
+>
+  Asset Assignment
+</MenuItem>
+
 
                       
 
