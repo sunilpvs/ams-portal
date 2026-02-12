@@ -231,14 +231,14 @@ const MyProSidebar = () => {
 
 <MenuItem
   icon={<AssignmentOutlinedIcon />}
-  routerLink={<Link to="/asset-config/assignment-types" />}
+  routerLink={<Link to="/assignmenttypes" />}
 >
   Assignment Types
 </MenuItem>
 
 <MenuItem
   icon={<LayersOutlinedIcon />}
-  routerLink={<Link to="/asset-config/asset-groups" />}
+  routerLink={<Link to="/assetgroups" />}
 >
   Asset Groups
 </MenuItem>
