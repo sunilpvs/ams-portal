@@ -1,231 +1,162 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import BrandsForm from "./BrandsForm";
 import BrandsTable from "./BrandsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
-import * as XLSX from "xlsx";
-import {
-  addAssetBrand,
-  deleteAssetBrand,
-  editAssetBrand,
-  getPaginatedAssetBrands,
-} from "../../../services/ams/assetBrandService";
 
 const Brands = () => {
+
   const [allBrands, setAllBrands] = useState([]);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  const [importResult, setImportResult] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [duplicateRecords, setDuplicateRecords] = useState([]);
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- FETCH BRANDS ---------------- */
-  const extractBrandsResponse = (response) => {
-    const payload = response?.data;
-    const data = payload?.asset_brands ?? payload;
-
-    const list =
-      data?.data ??
-      data?.brands ??
-      data?.items ??
-      data?.rows ??
-      (Array.isArray(data) ? data : []);
-
-    const total =
-      payload?.total ??
-      payload?.count ??
-      payload?.totalCount ??
-      payload?.meta?.total ??
-      payload?.pagination?.total ??
-      data?.total ??
-      data?.count ??
-      data?.totalCount ??
-      data?.meta?.total ??
-      data?.pagination?.total ??
-      (Array.isArray(list) ? list.length : 0);
-
-    return { list, total };
-  };
-
-  const fetchBrands = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getPaginatedAssetBrands(page, limit);
-      const { list, total } = extractBrandsResponse(response);
-      setAllBrands(list);
-      setTotalCount(total);
-    } catch (error) {
-      // console.error("Failed to fetch brands:", error);
-      setAllBrands([]);
-      setTotalCount(0);
-      toast.error(error?.response?.data?.error || "Failed to load brands");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, limit]);
-
+  /* ---------------- DUMMY BRAND DATA ---------------- */
   useEffect(() => {
-    fetchBrands();
-  }, [fetchBrands]);
+    const dummyData = [
+      { id: 1, brand: "DELL" },
+      { id: 2, brand: "HP" },
+      { id: 3, brand: "LENOVO" },
+      { id: 4, brand: "ASUS" },
+      { id: 5, brand: "ACER" }
+    ];
+    setAllBrands(dummyData);
+  }, []);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = async (id) => {
-    try {
-      await deleteAssetBrand(id);
-      toast.success("Brand deleted successfully");
-
-      if (allBrands.length === 1 && page > 1) {
-        setPage((prev) => prev - 1);
-      } else {
-        fetchBrands();
-      }
-    } catch (error) {
-      // console.error("Failed to delete brand:", error);
-      toast.error(error?.response?.data?.error || "Failed to delete brand");
-    }
+  const handleDelete = (id) => {
+    setAllBrands(prev => prev.filter(b => b.id !== id));
+    toast.success("Deleted Successfully");
   };
 
-  /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = async (formData) => {
-    const payload = {
-      brand: formData.brand,
-    };
+  /* ---------------- ADD / EDIT ---------------- */
+  const handleSubmit = (formData) => {
 
-    try {
-      if (editMode && formData.id) {
-        await editAssetBrand(formData.id, payload);
-        toast.success("Brand updated successfully");
-      } else {
-        await addAssetBrand(payload);
-        toast.success("Brand added successfully");
-      }
-
-      setOpenForm(false);
-      setSelectedBrand(null);
-      setEditMode(false);
-      fetchBrands();
-    } catch (error) {
-      // console.error("Failed to save brand:", error);
-      toast.error(error?.response?.data?.error || "Failed to save brand");
+    if (editMode) {
+      setAllBrands(prev =>
+        prev.map(b =>
+          b.id === formData.id ? { ...b, brand: formData.brand } : b
+        )
+      );
+      toast.success("Updated Successfully");
+    } else {
+      setAllBrands(prev => [
+        ...prev,
+        { id: prev.length + 1, brand: formData.brand }
+      ]);
+      toast.success("Added Successfully");
     }
+
+    setOpenForm(false);
+    setEditMode(false);
+    setSelectedBrand(null);
   };
 
-  /* ---------------- EDIT ---------------- */
   const handleEdit = (brand) => {
-    setSelectedBrand({
-      ...brand,
-      brand: brand.brand ?? brand.name ?? "",
-    });
+    setSelectedBrand(brand);
     setEditMode(true);
     setOpenForm(true);
   };
 
-  /* ---------------- ADD ---------------- */
   const handleAdd = () => {
     setSelectedBrand({ brand: "" });
     setEditMode(false);
     setOpenForm(true);
   };
 
-  /* ---------------- IMPORT ---------------- */
+  /* ---------------- IMPORT (Dummy) ---------------- */
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFileChange = () => {
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const importedBrands = XLSX.utils.sheet_to_json(sheet);
-
-      try {
-        await Promise.all(
-          importedBrands.map((item) =>
-            addAssetBrand({
-              brand: item.brand ?? item.name ?? "",
-            })
-          )
-        );
-        toast.success("Brands imported successfully");
-        fetchBrands();
-      } catch (error) {
-        // console.error("Failed to import brands:", error);
-        toast.error(error?.response?.data?.error || "Failed to import brands");
-      } finally {
-        e.target.value = "";
-      }
+    const dummyImportResult = {
+      total_rows: 15,
+      inserted: 5,
+      skipped_duplicate_db: 10
     };
-    reader.readAsArrayBuffer(file);
+
+    const dummyDuplicates = [
+      { id: 2, brand: "HP" },
+      { id: 3, brand: "LENOVO" },
+      { id: 4, brand: "LENOVO" },
+      { id: 5, brand: "LENOVO" },
+      { id: 6, brand: "LENOVO" },
+      { id: 7, brand: "LENOVO" },
+      { id: 8, brand: "LENOVO" },
+      { id: 9, brand: "LENOVO" },
+      { id: 10, brand: "LENOVO" },
+      { id: 11, brand: "LENOVO" },
+      { id: 12, brand: "LENOVO" },
+      { id: 13, brand: "LENOVO" },
+      { id: 14, brand: "LENOVO" }
+    ];
+
+    setImportResult(dummyImportResult);
+    setDuplicateRecords(dummyDuplicates);
+    setShowImportModal(true);
+
+    toast.success("Dummy Import Completed");
   };
 
-
+  /* ---------------- UPDATE DUPLICATES ---------------- */
+  const handleUpdateDuplicates = () => {
+    toast.success("Duplicate records updated (Frontend)");
+    setShowImportModal(false);
+  };
 
   return (
     <div className="container mt-4">
       <div className="row justify-content-center">
         <div className="col-md-10">
 
-          {/* HEADER + ACTION BUTTONS */}
-<div className="d-flex justify-content-between align-items-center mt-5 mb-3">
+          {/* HEADER */}
+          <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
+            <Header title="Brand Management" subtitle="Admin / Brands" />
 
-  {/* Left Side - Heading */}
-  <Header title="Brand Management" subtitle="Admin / Brands" />
+            <div className="d-flex gap-2">
+              <button className="btn btn-primary" onClick={handleAdd}>
+                + Add Brand
+              </button>
 
-  {/* Right Side - Buttons */}
-  <div className="d-flex gap-2">
+              <button className="btn btn-info" onClick={handleImportClick}>
+                Import
+              </button>
 
-    <button
-      className="btn btn-primary"
-      onClick={handleAdd}
-    >
-      + Add Brand
-    </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept=".xls,.xlsx,.csv"
+                onChange={handleFileChange}
+              />
+            </div>
+          </div>
 
-    <button
-      className="btn btn-info"
-      onClick={handleImportClick}
-    >
-      Import
-    </button>
-
-    <input
-      type="file"
-      ref={fileInputRef}
-      style={{ display: "none" }}
-      accept=".xls,.xlsx,.csv"
-      onChange={handleFileChange}
-    />
-
-  </div>
-
-</div>
-
+          {/* MAIN TABLE */}
           <BrandsTable
-            brands={allBrands}
-            totalCount={totalCount}
+            brands={Array.isArray(allBrands) ? allBrands : []}
             deleteBrand={handleDelete}
             editBrand={handleEdit}
-            currentPage={page}
-            itemsPerPage={limit}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-            onSearch={setSearchTerm}
-            searchTerm={searchTerm}
-            loading={loading}
+            currentPage={1}
+            itemsPerPage={10}
+            onPageChange={() => {}}
+            onLimitChange={() => {}}
+            onSearch={() => {}}
+            searchTerm=""
+            loading={false}
+            totalCount={allBrands.length}
           />
 
+          {/* FORM */}
           {openForm && (
             <BrandsForm
               data={selectedBrand}
@@ -234,6 +165,86 @@ const Brands = () => {
               editMode={editMode}
             />
           )}
+
+          {/* IMPORT RESULT MODAL */}
+          {showImportModal && importResult && (
+            <div className="modal fade show d-block">
+              <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+
+                  <div className="modal-header">
+                    <h5 className="modal-title">Import Result</h5>
+                    <button
+                      className="btn-close"
+                      onClick={() => setShowImportModal(false)}
+                    ></button>
+                  </div>
+
+                  <div className="modal-body">
+
+                    <p><strong>Total Rows:</strong> {importResult.total_rows}</p>
+                    <p><strong>Inserted:</strong> {importResult.inserted}</p>
+                    <p><strong>Duplicate in DB:</strong> {importResult.skipped_duplicate_db}</p>
+
+                    {duplicateRecords.length > 0 && (
+                      <>
+                        <h6 className="text-danger mt-3">Duplicate Records Found</h6>
+
+                        {/* SCROLLABLE TABLE */}
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                          <table className="table table-bordered table-striped">
+                            <thead
+                              className="table-light"
+                              style={{ position: "sticky", top: 0, zIndex: 1 }}
+                            >
+                              <tr>
+                                <th>S.No</th>
+                                <th>ID</th>
+                                <th>Brand</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {duplicateRecords.map((row, index) => (
+                                <tr key={row.id}>
+                                  <td>{index + 1}</td>
+                                  <td>{row.id}</td>
+                                  <td>{row.brand}</td>
+                                  <td>
+                                    <span className="text-danger fw-bold">
+                                      Duplicate
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-success"
+                      onClick={handleUpdateDuplicates}
+                    >
+                      Update
+                    </button>
+
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setShowImportModal(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

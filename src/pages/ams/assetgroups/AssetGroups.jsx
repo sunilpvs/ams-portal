@@ -1,166 +1,116 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import AssetGroupForm from "./AssetGroupsForm";
 import AssetGroupTable from "./AssetGroupsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
-import * as XLSX from "xlsx";
-import {
-  addAssetGroup,
-  deleteAssetGroup,
-  editAssetGroup,
-  getPaginatedAssetGroups,
-} from "../../../services/ams/assetGroupService";
 
 const AssetGroups = () => {
+
   const [assetGroups, setAssetGroups] = useState([]);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedAssetGroup, setSelectedAssetGroup] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  const [importResult, setImportResult] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [duplicateRecords, setDuplicateRecords] = useState([]);
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- FETCH ---------------- */
-  const extractResponse = (response) => {
-    const payload = response?.data;
-    const data = payload?.asset_groups ?? payload;
-
-    const list =
-      data?.data ??
-      data?.items ??
-      data?.rows ??
-      (Array.isArray(data) ? data : []);
-
-    const total =
-      payload?.total ??
-      payload?.count ??
-      payload?.totalCount ??
-      data?.total ??
-      data?.count ??
-      (Array.isArray(list) ? list.length : 0);
-
-    return { list, total };
-  };
-
-  const fetchAssetGroups = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getPaginatedAssetGroups(page, limit);
-      const { list, total } = extractResponse(response);
-      setAssetGroups(list);
-      setTotalCount(total);
-    } catch (error) {
-      setAssetGroups([]);
-      setTotalCount(0);
-      toast.error(error?.response?.data?.error || "Failed to load asset groups");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, limit]);
-
+  /* ---------------- DUMMY DATA ---------------- */
   useEffect(() => {
-    fetchAssetGroups();
-  }, [fetchAssetGroups]);
+    const dummyData = [
+      { id: 1, group: "Laptops" },
+      { id: 2, group: "Desktops" },
+      { id: 3, group: "Printers" },
+      { id: 4, group: "Monitors" },
+      { id: 5, group: "Networking Devices" }
+    ];
+    setAssetGroups(dummyData);
+  }, []);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = async (id) => {
-    try {
-      await deleteAssetGroup(id);
-      toast.success("Asset Group deleted successfully");
-
-      if (assetGroups.length === 1 && page > 1) {
-        setPage((prev) => prev - 1);
-      } else {
-        fetchAssetGroups();
-      }
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to delete asset group");
-    }
+  const handleDelete = (id) => {
+    setAssetGroups(prev => prev.filter(g => g.id !== id));
+    toast.success("Deleted Successfully");
   };
 
-  /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = async (formData) => {
-    const payload = {
-      group: formData.group,
-    };
+  /* ---------------- ADD / EDIT ---------------- */
+  const handleSubmit = (formData) => {
 
-    try {
-      if (editMode && formData.id) {
-        await editAssetGroup(formData.id, payload);
-        toast.success("Asset Group updated successfully");
-      } else {
-        await addAssetGroup(payload);
-        toast.success("Asset Group added successfully");
-      }
-
-      setOpenForm(false);
-      setSelectedAssetGroup(null);
-      setEditMode(false);
-      fetchAssetGroups();
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to save asset group");
+    if (editMode) {
+      setAssetGroups(prev =>
+        prev.map(g =>
+          g.id === formData.id ? { ...g, group: formData.group } : g
+        )
+      );
+      toast.success("Updated Successfully");
+    } else {
+      setAssetGroups(prev => [
+        ...prev,
+        { id: prev.length + 1, group: formData.group }
+      ]);
+      toast.success("Added Successfully");
     }
+
+    setOpenForm(false);
+    setEditMode(false);
+    setSelectedAssetGroup(null);
   };
 
-  /* ---------------- EDIT ---------------- */
   const handleEdit = (group) => {
-    setSelectedAssetGroup({
-      ...group,
-      group: group.group ?? group.name ?? "",
-    });
+    setSelectedAssetGroup(group);
     setEditMode(true);
     setOpenForm(true);
   };
 
-  /* ---------------- ADD ---------------- */
   const handleAdd = () => {
     setSelectedAssetGroup({ group: "" });
     setEditMode(false);
     setOpenForm(true);
   };
 
-  /* ---------------- IMPORT ---------------- */
+  /* ---------------- IMPORT (Dummy) ---------------- */
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFileChange = () => {
 
-    const reader = new FileReader();
-
-    reader.onload = async (evt) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const importedData = XLSX.utils.sheet_to_json(sheet);
-
-      try {
-        await Promise.all(
-          importedData.map((item) =>
-            addAssetGroup({
-              group: item.group ?? item.name ?? "",
-            })
-          )
-        );
-
-        toast.success("Asset Groups imported successfully");
-        fetchAssetGroups();
-      } catch (error) {
-        toast.error(error?.response?.data?.error || "Failed to import asset groups");
-      } finally {
-        e.target.value = "";
-      }
+    const dummyImportResult = {
+      total_rows: 20,
+      inserted: 5,
+      skipped_duplicate_db: 15
     };
 
-    reader.readAsArrayBuffer(file);
+    const dummyDuplicates = [
+      { id: 2, group: "Desktops" },
+      { id: 3, group: "Printers" },
+      { id: 4, group: "Printers" },
+      { id: 5, group: "Printers" },
+      { id: 6, group: "Printers" },
+      { id: 7, group: "Printers" },
+      { id: 8, group: "Printers" },
+      { id: 9, group: "Printers" },
+      { id: 10, group: "Printers" },
+      { id: 11, group: "Printers" },
+      { id: 12, group: "Printers" },
+      { id: 13, group: "Printers" },
+      { id: 14, group: "Printers" }
+    ];
+
+    setImportResult(dummyImportResult);
+    setDuplicateRecords(dummyDuplicates);
+    setShowImportModal(true);
+
+    toast.success("Dummy Import Completed");
+  };
+
+  /* ---------------- UPDATE DUPLICATES ---------------- */
+  const handleUpdateDuplicates = () => {
+    toast.success("Duplicate records updated (Frontend)");
+    setShowImportModal(false);
   };
 
   return (
@@ -168,6 +118,7 @@ const AssetGroups = () => {
       <div className="row justify-content-center">
         <div className="col-md-10">
 
+          {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
             <Header
               title="Asset Group Management"
@@ -193,20 +144,22 @@ const AssetGroups = () => {
             </div>
           </div>
 
+          {/* TABLE */}
           <AssetGroupTable
             assetGroups={assetGroups}
-            totalCount={totalCount}
             deleteAssetGroup={handleDelete}
             editAssetGroup={handleEdit}
-            currentPage={page}
-            itemsPerPage={limit}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-            onSearch={setSearchTerm}
-            searchTerm={searchTerm}
-            loading={loading}
+            currentPage={1}
+            itemsPerPage={10}
+            onPageChange={() => {}}
+            onLimitChange={() => {}}
+            onSearch={() => {}}
+            searchTerm=""
+            loading={false}
+            totalCount={assetGroups.length}
           />
 
+          {/* FORM */}
           {openForm && (
             <AssetGroupForm
               data={selectedAssetGroup}
@@ -215,6 +168,88 @@ const AssetGroups = () => {
               editMode={editMode}
             />
           )}
+
+          {/* IMPORT RESULT MODAL */}
+          {showImportModal && importResult && (
+            <div className="modal fade show d-block">
+              <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+
+                  <div className="modal-header">
+                    <h5 className="modal-title">Import Result</h5>
+                    <button
+                      className="btn-close"
+                      onClick={() => setShowImportModal(false)}
+                    ></button>
+                  </div>
+
+                  <div className="modal-body">
+
+                    <p><strong>Total Rows:</strong> {importResult.total_rows}</p>
+                    <p><strong>Inserted:</strong> {importResult.inserted}</p>
+                    <p><strong>Duplicate in DB:</strong> {importResult.skipped_duplicate_db}</p>
+
+                    {duplicateRecords.length > 0 && (
+                      <>
+                        <h6 className="text-danger mt-3">
+                          Duplicate Records Found
+                        </h6>
+
+                        {/* SCROLLABLE TABLE */}
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                          <table className="table table-bordered table-striped">
+                            <thead
+                              className="table-light"
+                              style={{ position: "sticky", top: 0, zIndex: 1 }}
+                            >
+                              <tr>
+                                <th>S.No</th>
+                                <th>ID</th>
+                                <th>Group</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {duplicateRecords.map((row, index) => (
+                                <tr key={row.id}>
+                                  <td>{index + 1}</td>
+                                  <td>{row.id}</td>
+                                  <td>{row.group}</td>
+                                  <td>
+                                    <span className="text-danger fw-bold">
+                                      Duplicate
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-success"
+                      onClick={handleUpdateDuplicates}
+                    >
+                      Update
+                    </button>
+
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setShowImportModal(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

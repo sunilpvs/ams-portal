@@ -1,186 +1,114 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import AssignmentTypeForm from "./AssignmentTypesForm";
-import AssignmentTypeTable from "./AssignmentTypesTable";
+import AssignmentTypesTable from "./AssignmentTypesTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
-import * as XLSX from "xlsx";
-import {
-  addAssetAssignmentType,
-  deleteAssetAssignmentType,
-  editAssetAssignmentType,
-  getPaginatedAssignmentTypes,
-} from "../../../services/ams/assignmentTypeService";
 
 const AssignmentTypes = () => {
   const [allAssignmentTypes, setAllAssignmentTypes] = useState([]);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedAssignmentType, setSelectedAssignmentType] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  const [importResult, setImportResult] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [duplicateRecords, setDuplicateRecords] = useState([]);
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- RESPONSE EXTRACTOR ---------------- */
-  const extractAssignmentTypesResponse = (response) => {
-    const payload = response?.data;
-    const data = payload?.assignment_types ?? payload;
-
-    const list =
-      data?.data ??
-      data?.assignment_types ??
-      data?.items ??
-      data?.rows ??
-      (Array.isArray(data) ? data : []);
-
-    const total =
-      payload?.total ??
-      payload?.count ??
-      payload?.totalCount ??
-      payload?.meta?.total ??
-      payload?.pagination?.total ??
-      (Array.isArray(list) ? list.length : 0);
-
-    return { list, total };
-  };
-
-  /* ---------------- FETCH ---------------- */
-  const fetchAssignmentTypes = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getPaginatedAssignmentTypes(
-        page,
-        limit,
-        searchTerm
-      );
-      const { list, total } =
-        extractAssignmentTypesResponse(response);
-
-      setAllAssignmentTypes(list);
-      setTotalCount(total);
-    } catch (error) {
-      setAllAssignmentTypes([]);
-      setTotalCount(0);
-      toast.error(
-        error?.response?.data?.error ||
-          "Failed to load assignment types"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [page, limit, searchTerm]);
-
+  /* ---------------- DUMMY DATA ---------------- */
   useEffect(() => {
-    fetchAssignmentTypes();
-  }, [fetchAssignmentTypes]);
+    const dummyData = [
+      { id: 1, assignment_type: "Permanent" },
+      { id: 2, assignment_type: "Temporary" },
+      { id: 3, assignment_type: "Contract" },
+      { id: 4, assignment_type: "Internship" },
+      { id: 5, assignment_type: "Remote" },
+    ];
+    setAllAssignmentTypes(dummyData);
+  }, []);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = async (id) => {
-    try {
-      await deleteAssetAssignmentType(id);
-      toast.success("Assignment Type deleted successfully");
-
-      if (allAssignmentTypes.length === 1 && page > 1) {
-        setPage((prev) => prev - 1);
-      } else {
-        fetchAssignmentTypes();
-      }
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.error ||
-          "Failed to delete assignment type"
-      );
-    }
+  const handleDelete = (id) => {
+    setAllAssignmentTypes((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
+    toast.success("Deleted Successfully");
   };
 
-  /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = async (formData) => {
-    const payload = {
-      assignment_type: formData.assignment_type,
-    };
-
-    try {
-      if (editMode && formData.id) {
-        await editAssetAssignmentType(formData.id, payload);
-        toast.success("Assignment Type updated successfully");
-      } else {
-        await addAssetAssignmentType(payload);
-        toast.success("Assignment Type added successfully");
-      }
-
-      setOpenForm(false);
-      setSelectedAssignmentType(null);
-      setEditMode(false);
-      setPage(1); // reset to first page after add/edit
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.error ||
-          "Failed to save assignment type"
+  /* ---------------- ADD / EDIT ---------------- */
+  const handleSubmit = (formData) => {
+    if (editMode) {
+      setAllAssignmentTypes((prev) =>
+        prev.map((item) =>
+          item.id === formData.id
+            ? { ...item, assignment_type: formData.assignment_type }
+            : item
+        )
       );
+      toast.success("Updated Successfully");
+    } else {
+      setAllAssignmentTypes((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          assignment_type: formData.assignment_type,
+        },
+      ]);
+      toast.success("Added Successfully");
     }
+
+    setOpenForm(false);
+    setEditMode(false);
+    setSelectedAssignmentType(null);
   };
 
-  /* ---------------- EDIT ---------------- */
   const handleEdit = (item) => {
-    setSelectedAssignmentType({
-      ...item,
-      assignment_type:
-        item.assignment_type ?? item.name ?? "",
-    });
+    setSelectedAssignmentType(item);
     setEditMode(true);
     setOpenForm(true);
   };
 
-  /* ---------------- ADD ---------------- */
   const handleAdd = () => {
     setSelectedAssignmentType({ assignment_type: "" });
     setEditMode(false);
     setOpenForm(true);
   };
 
-  /* ---------------- IMPORT ---------------- */
+  /* ---------------- IMPORT (Dummy Same As Brands) ---------------- */
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = async (evt) => {
-      const data = new Uint8Array(evt.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const importedData = XLSX.utils.sheet_to_json(sheet);
-
-      try {
-        for (const item of importedData) {
-          await addAssetAssignmentType({
-            assignment_type:
-              item.assignment_type ?? item.name ?? "",
-          });
-        }
-
-        toast.success("Assignment Types imported successfully");
-        setPage(1);
-      } catch (error) {
-        toast.error(
-          error?.response?.data?.error ||
-            "Failed to import assignment types"
-        );
-      } finally {
-        e.target.value = "";
-      }
+  const handleFileChange = () => {
+    const dummyImportResult = {
+      total_rows: 12,
+      inserted: 4,
+      skipped_duplicate_db: 8,
     };
 
-    reader.readAsArrayBuffer(file);
+    const dummyDuplicates = [
+      { id: 2, assignment_type: "Temporary" },
+      { id: 3, assignment_type: "Contract" },
+      { id: 4, assignment_type: "Contract" },
+      { id: 5, assignment_type: "Contract" },
+      { id: 6, assignment_type: "Contract" },
+      { id: 7, assignment_type: "Contract" },
+      { id: 8, assignment_type: "Contract" },
+      { id: 9, assignment_type: "Contract" },
+    ];
+
+    setImportResult(dummyImportResult);
+    setDuplicateRecords(dummyDuplicates);
+    setShowImportModal(true);
+
+    toast.success("Dummy Import Completed");
+  };
+
+  const handleUpdateDuplicates = () => {
+    toast.success("Duplicate records updated (Frontend)");
+    setShowImportModal(false);
   };
 
   return (
@@ -188,26 +116,19 @@ const AssignmentTypes = () => {
       <div className="row justify-content-center">
         <div className="col-md-10">
 
-          {/* HEADER + ACTION BUTTONS */}
+          {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-
             <Header
               title="Assignment Type Management"
               subtitle="Admin / Assignment Types"
             />
 
             <div className="d-flex gap-2">
-              <button
-                className="btn btn-primary"
-                onClick={handleAdd}
-              >
+              <button className="btn btn-primary" onClick={handleAdd}>
                 + Add Assignment Type
               </button>
 
-              <button
-                className="btn btn-info"
-                onClick={handleImportClick}
-              >
+              <button className="btn btn-info" onClick={handleImportClick}>
                 Import
               </button>
 
@@ -221,32 +142,110 @@ const AssignmentTypes = () => {
             </div>
           </div>
 
-          <AssignmentTypeTable
+          {/* TABLE */}
+          <AssignmentTypesTable
             assignmentTypes={allAssignmentTypes}
-            totalCount={totalCount}
             deleteAssignmentType={handleDelete}
             editAssignmentType={handleEdit}
-            currentPage={page}
-            itemsPerPage={limit}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-            onSearch={setSearchTerm}
-            searchTerm={searchTerm}
-            loading={loading}
+            currentPage={1}
+            itemsPerPage={10}
+            onPageChange={() => {}}
+            onLimitChange={() => {}}
+            onSearch={() => {}}
+            searchTerm=""
+            loading={false}
+            totalCount={allAssignmentTypes.length}
           />
 
+          {/* FORM */}
           {openForm && (
             <AssignmentTypeForm
               data={selectedAssignmentType}
               add={handleSubmit}
-              close={() => {
-                setOpenForm(false);
-                setSelectedAssignmentType(null);
-                setEditMode(false);
-              }}
+              close={() => setOpenForm(false)}
               editMode={editMode}
             />
           )}
+
+          {/* IMPORT RESULT MODAL (Same Design as Brands) */}
+          {showImportModal && importResult && (
+            <div className="modal fade show d-block">
+              <div className="modal-dialog modal-lg">
+                <div className="modal-content">
+
+                  <div className="modal-header">
+                    <h5 className="modal-title">Import Result</h5>
+                    <button
+                      className="btn-close"
+                      onClick={() => setShowImportModal(false)}
+                    ></button>
+                  </div>
+
+                  <div className="modal-body">
+                    <p><strong>Total Rows:</strong> {importResult.total_rows}</p>
+                    <p><strong>Inserted:</strong> {importResult.inserted}</p>
+                    <p><strong>Duplicate in DB:</strong> {importResult.skipped_duplicate_db}</p>
+
+                    {duplicateRecords.length > 0 && (
+                      <>
+                        <h6 className="text-danger mt-3">
+                          Duplicate Records Found
+                        </h6>
+
+                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                          <table className="table table-bordered table-striped">
+                            <thead
+                              className="table-light"
+                              style={{ position: "sticky", top: 0, zIndex: 1 }}
+                            >
+                              <tr>
+                                <th>S.No</th>
+                                <th>ID</th>
+                                <th>Assignment Type</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {duplicateRecords.map((row, index) => (
+                                <tr key={row.id}>
+                                  <td>{index + 1}</td>
+                                  <td>{row.id}</td>
+                                  <td>{row.assignment_type}</td>
+                                  <td>
+                                    <span className="text-danger fw-bold">
+                                      Duplicate
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      className="btn btn-success"
+                      onClick={handleUpdateDuplicates}
+                    >
+                      Update
+                    </button>
+
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => setShowImportModal(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

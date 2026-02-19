@@ -5,28 +5,29 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 function AssetGroupsTable({
-  groups,
-  totalCount,
-  deleteGroup,
-  editGroup,
-  currentPage,
-  itemsPerPage,
-  onPageChange,
-  onLimitChange,
-  onSearch,
-  searchTerm,
-  loading,
+  groups = [],   // ✅ SAFE DEFAULT
+  totalCount = 0,
+  deleteGroup = () => {},
+  editGroup = () => {},
+  currentPage = 1,
+  itemsPerPage = 10,
+  onPageChange = () => {},
+  onLimitChange = () => {},
+  onSearch = () => {},
+  searchTerm = "",
+  loading = false,
 }) {
+
   const [sortConfig, setSortConfig] = useState({
     key: "group",
     direction: "asc",
   });
 
-  /* -------------------- FILTER -------------------- */
-  const filteredGroups = groups.filter((group) =>
-    (group.group || group.name || "")
+  /* -------------------- SAFE FILTER -------------------- */
+  const filteredGroups = (groups || []).filter((group) =>
+    (group?.group || group?.name || "")
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+      .includes((searchTerm || "").toLowerCase())
   );
 
   /* -------------------- SORT -------------------- */
@@ -34,8 +35,8 @@ function AssetGroupsTable({
     const key = sortConfig.key;
     const dir = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue = (a[key] || a.group || a.name || "").toLowerCase();
-    const bValue = (b[key] || b.group || b.name || "").toLowerCase();
+    const aValue = (a?.[key] || a?.group || a?.name || "").toLowerCase();
+    const bValue = (b?.[key] || b?.group || b?.name || "").toLowerCase();
 
     if (aValue < bValue) return -1 * dir;
     if (aValue > bValue) return 1 * dir;
@@ -50,6 +51,7 @@ function AssetGroupsTable({
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
+
   const paginatedGroups = sortedGroups.slice(
     startIndex,
     startIndex + itemsPerPage
@@ -80,11 +82,11 @@ function AssetGroupsTable({
     return "";
   };
 
-  /* -------------------- EXPORT TO EXCEL -------------------- */
+  /* -------------------- EXPORT -------------------- */
   const handleExportExcel = () => {
     const exportData = sortedGroups.map((group, index) => ({
       "Sr. No.": index + 1,
-      "Asset Group": group.group || group.name || "",
+      "Asset Group": group?.group || group?.name || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -106,10 +108,10 @@ function AssetGroupsTable({
   return (
     <Box m="20px">
       <div className="container mt-4 p-3 bg-white rounded shadow-sm">
-        
-        {/* Search + Export + Limit */}
+
+        {/* SEARCH + EXPORT + LIMIT */}
         <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-          
+
           <div className="position-relative me-3 mb-2" style={{ flex: 1 }}>
             <input
               type="text"
@@ -154,16 +156,19 @@ function AssetGroupsTable({
         </div>
 
         {/* TABLE */}
-        <div className="table-responsive">
+        <div style={{ maxHeight: "350px", overflowY: "auto" }}>
           <table className="table table-hover table-bordered align-middle text-center">
-            <thead className="table-dark">
+            <thead
+              className="table-dark"
+              style={{ position: "sticky", top: 0, zIndex: 1 }}
+            >
               <tr>
                 <th>Sr. No.</th>
                 <th
                   onClick={() => handleSort("group")}
                   style={{ cursor: "pointer" }}
                 >
-                  Asset Group{" "}
+                  Asset Group
                   <span className="float-end">
                     {getSortArrow("group")}
                   </span>
@@ -189,7 +194,7 @@ function AssetGroupsTable({
                 paginatedGroups.map((data, index) => (
                   <tr key={data.id}>
                     <td>{startIndex + index + 1}</td>
-                    <td>{data.group || data.name}</td>
+                    <td>{data?.group || data?.name}</td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
@@ -254,6 +259,7 @@ function AssetGroupsTable({
             </div>
           </div>
         )}
+
       </div>
     </Box>
   );
@@ -261,17 +267,17 @@ function AssetGroupsTable({
 
 /* -------------------- PROP TYPES -------------------- */
 AssetGroupsTable.propTypes = {
-  groups: PropTypes.array.isRequired,
-  totalCount: PropTypes.number.isRequired,
-  deleteGroup: PropTypes.func.isRequired,
-  editGroup: PropTypes.func.isRequired,
-  currentPage: PropTypes.number.isRequired,
-  itemsPerPage: PropTypes.number.isRequired,
-  onPageChange: PropTypes.func.isRequired,
-  onLimitChange: PropTypes.func.isRequired,
-  onSearch: PropTypes.func.isRequired,
-  searchTerm: PropTypes.string.isRequired,
-  loading: PropTypes.bool.isRequired,
+  groups: PropTypes.array,
+  totalCount: PropTypes.number,
+  deleteGroup: PropTypes.func,
+  editGroup: PropTypes.func,
+  currentPage: PropTypes.number,
+  itemsPerPage: PropTypes.number,
+  onPageChange: PropTypes.func,
+  onLimitChange: PropTypes.func,
+  onSearch: PropTypes.func,
+  searchTerm: PropTypes.string,
+  loading: PropTypes.bool,
 };
 
 export default AssetGroupsTable;
