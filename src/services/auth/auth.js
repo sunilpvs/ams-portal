@@ -1,5 +1,5 @@
 import axiosInstance from "../../utils/axiosInstance.js";
-import {getVMSAccessStatus} from "../admin/accessReqService";
+import {getAMSAccessStatus} from "../admin/accessReqService";
 
 
 // ------------------
@@ -32,7 +32,7 @@ export const checkAuth = async () => {
 
     if (auth_response?.status === 200) {
       try {
-        const access_response = await getVMSAccessStatus();
+        const access_response = await getAMSAccessStatus();
 
         if (access_response?.status === 200) {
           return { authenticated: true, status: "Granted" };

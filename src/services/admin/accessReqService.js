@@ -8,7 +8,7 @@ export const sendAccessRequest = (payload) => {
     return axiosInstance.post(`api/admin/access-request`, payload);
 }
 
-export const getVMSAccessStatus = () => {
+export const getAMSAccessStatus = () => {
     return axiosInstance.get(`auth/access-status.php?type=ams`);
 }
 
