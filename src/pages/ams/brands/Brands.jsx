@@ -1,13 +1,24 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import BrandsForm from "./BrandsForm";
 import BrandsTable from "./BrandsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
+import {
+  addAssetBrand,
+  deleteAssetBrand,
+  editAssetBrand,
+  getPaginatedAssetBrands,
+} from "../../../services/ams/assetBrandService";
 
 const Brands = () => {
-
   const [allBrands, setAllBrands] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
@@ -18,45 +29,85 @@ const Brands = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY BRAND DATA ---------------- */
+  const extractBrandsFromResponse = (response) => {
+    const payload = response?.data?.asset_brands;
+
+    // list of brands
+    const list = (Array.isArray(payload) ? payload : []);
+
+    // get total count from response, fallback to list length if not provided
+    const total = response?.data?.total ?? (Array.isArray(list) ? list.length : 0);
+
+    return {
+      list: Array.isArray(list) ? list : [],
+      total: Number.isFinite(Number(total)) ? Number(total) : 0,
+    };
+  };
+
+  const fetchBrands = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getPaginatedAssetBrands(currentPage, itemsPerPage);
+      const { list, total } = extractBrandsFromResponse(response);
+      setAllBrands(list);
+      setTotalCount(total);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to fetch brands");
+      setAllBrands([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage]);
+
   useEffect(() => {
-    const dummyData = [
-      { id: 1, brand: "DELL" },
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "ASUS" },
-      { id: 5, brand: "ACER" }
-    ];
-    setAllBrands(dummyData);
-  }, []);
+    fetchBrands();
+  }, [fetchBrands]);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = (id) => {
-    setAllBrands(prev => prev.filter(b => b.id !== id));
-    toast.success("Deleted Successfully");
+  const handleDelete = async (id) => {
+    try {
+      await deleteAssetBrand(id);
+      toast.success("Deleted Successfully");
+
+      if (allBrands.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+        return;
+      }
+
+      fetchBrands();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to delete brand");
+    }
   };
 
   /* ---------------- ADD / EDIT ---------------- */
-  const handleSubmit = (formData) => {
+  const handleSubmit = async (formData) => {
+    const payload = {
+      brand: (formData?.brand || "").trim(),
+    };
 
-    if (editMode) {
-      setAllBrands(prev =>
-        prev.map(b =>
-          b.id === formData.id ? { ...b, brand: formData.brand } : b
-        )
-      );
-      toast.success("Updated Successfully");
-    } else {
-      setAllBrands(prev => [
-        ...prev,
-        { id: prev.length + 1, brand: formData.brand }
-      ]);
-      toast.success("Added Successfully");
+    if (!payload.brand) {
+      toast.error("Brand name is required");
+      return;
     }
 
-    setOpenForm(false);
-    setEditMode(false);
-    setSelectedBrand(null);
+    try {
+      if (editMode && formData?.id) {
+        await editAssetBrand(formData.id, payload);
+        toast.success("Updated Successfully");
+      } else {
+        await addAssetBrand(payload);
+        toast.success("Added Successfully");
+      }
+
+      setOpenForm(false);
+      setEditMode(false);
+      setSelectedBrand(null);
+      fetchBrands();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to save brand");
+    }
   };
 
   const handleEdit = (brand) => {
@@ -146,14 +197,14 @@ const Brands = () => {
             brands={Array.isArray(allBrands) ? allBrands : []}
             deleteBrand={handleDelete}
             editBrand={handleEdit}
-            currentPage={1}
-            itemsPerPage={10}
-            onPageChange={() => {}}
-            onLimitChange={() => {}}
-            onSearch={() => {}}
-            searchTerm=""
-            loading={false}
-            totalCount={allBrands.length}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+            onSearch={setSearchTerm}
+            searchTerm={searchTerm}
+            loading={loading}
+            totalCount={totalCount}
           />
 
           {/* FORM */}

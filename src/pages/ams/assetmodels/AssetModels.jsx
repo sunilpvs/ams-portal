@@ -1,13 +1,28 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AssetModelForm from "./AssetModelsForm";
 import AssetModelTable from "./AssetModelsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
+import {
+  addAssetModel,
+  deleteAssetModel,
+  editAssetModel,
+  getPaginatedAssetModels,
+} from "../../../services/ams/assetModelService";
+import { getAssetCategoryCombo } from "../../../services/ams/assetCategoryService";
+import { getAssetBrandCombo } from "../../../services/ams/assetBrandService";
 
 const AssetModels = () => {
-
   const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
+  const [assetCategories, setAssetCategories] = useState([]);
+  const [assetBrands, setAssetBrands] = useState([]);
+
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedModel, setSelectedModel] = useState(null);
@@ -18,46 +33,150 @@ const AssetModels = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY DATA ---------------- */
-  useEffect(() => {
-    const dummyData = [
-      { id: 1, model_name: "Dell Latitude 5420" },
-      { id: 2, model_name: "HP EliteBook 840" },
-      { id: 3, model_name: "Canon LBP 2900" },
-      { id: 4, model_name: "Cisco Catalyst 2960" }
-    ];
-    setModels(dummyData);
+  const extractAssetModelsFromResponse = (response) => {
+    const root = response?.data;
+    const payload = root?.data ?? root;
+
+    const list =
+      payload?.rows ??
+      payload?.items ??
+      payload?.asset_models ??
+      payload?.data ??
+      (Array.isArray(payload) ? payload : []);
+
+    const total =
+      payload?.totalCount ??
+      payload?.total ??
+      payload?.count ??
+      payload?.pagination?.total ??
+      (Array.isArray(list) ? list.length : 0);
+
+    return {
+      list: Array.isArray(list) ? list : [],
+      total: Number.isFinite(Number(total)) ? Number(total) : 0,
+    };
+  };
+
+  const extractComboListFromResponse = (response) => {
+    const root = response?.data;
+    const payload = root?.data ?? root;
+
+    const list =
+      payload?.rows ??
+      payload?.items ??
+      payload?.data ??
+      (Array.isArray(payload) ? payload : []);
+
+    return Array.isArray(list) ? list : [];
+  };
+
+  const fetchModels = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getPaginatedAssetModels(currentPage, itemsPerPage);
+      const { list, total } = extractAssetModelsFromResponse(response);
+      setModels(list);
+      setTotalCount(total);
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset models");
+      setModels([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage]);
+
+  const fetchAssetCategories = useCallback(async () => {
+    try {
+      const response = await getAssetCategoryCombo(["id", "asset_category"]);
+      setAssetCategories(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset categories");
+      setAssetCategories([]);
+    }
   }, []);
 
+  const fetchAssetBrands = useCallback(async () => {
+    try {
+      const response = await getAssetBrandCombo(["id", "brand"]);
+      setAssetBrands(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset brands");
+      setAssetBrands([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
+
+  useEffect(() => {
+    fetchAssetCategories();
+    fetchAssetBrands();
+  }, [fetchAssetCategories, fetchAssetBrands]);
+
   /* ---------------- DELETE ---------------- */
-  const handleDeleteModel = (id) => {
-    setModels(prev => prev.filter(m => m.id !== id));
-    toast.success("Deleted Successfully");
+  const handleDeleteModel = async (id) => {
+    try {
+      await deleteAssetModel(id);
+      toast.success("Deleted Successfully");
+
+      if (models.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+        return;
+      }
+
+      fetchModels();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to delete asset model");
+    }
   };
 
   /* ---------------- ADD / EDIT ---------------- */
-  const handleSubmitModel = (formData) => {
+  const handleSubmitModel = async (formData) => {
+    const payload = {
+      asset_model: (formData?.asset_model || formData?.model || "").trim(),
+      config: (formData?.config || "").trim(),
+      asset_category_id: Number(formData?.asset_category_id),
+      brand_id: Number(formData?.brand_id || formData?.asset_brand_id),
+    };
 
-    if (editMode) {
-      setModels(prev =>
-        prev.map(m =>
-          m.id === formData.id
-            ? { ...m, model_name: formData.model_name }
-            : m
-        )
-      );
-      toast.success("Updated Successfully");
-    } else {
-      setModels(prev => [
-        ...prev,
-        { id: prev.length + 1, model_name: formData.model_name }
-      ]);
-      toast.success("Added Successfully");
+    if (!payload.asset_model) {
+      toast.error("Asset model is required");
+      return;
     }
 
-    setOpenForm(false);
-    setEditMode(false);
-    setSelectedModel(null);
+    if (!payload.config) {
+      toast.error("Configuration is required");
+      return;
+    }
+
+    if (!payload.asset_category_id) {
+      toast.error("Asset category is required");
+      return;
+    }
+
+    if (!payload.brand_id) {
+      toast.error("Asset brand is required");
+      return;
+    }
+
+    try {
+      if (editMode && formData?.id) {
+        await editAssetModel(formData.id, payload);
+        toast.success("Updated Successfully");
+      } else {
+        await addAssetModel(payload);
+        toast.success("Added Successfully");
+      }
+
+      setOpenForm(false);
+      setEditMode(false);
+      setSelectedModel(null);
+      fetchModels();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to save asset model");
+    }
   };
 
   const handleEditModel = (item) => {
@@ -67,7 +186,12 @@ const AssetModels = () => {
   };
 
   const handleAddModel = () => {
-    setSelectedModel({ model_name: "" });
+    setSelectedModel({
+      asset_model: "",
+      config: "",
+      asset_category_id: "",
+      brand_id: "",
+    });
     setEditMode(false);
     setOpenForm(true);
   };
@@ -137,8 +261,18 @@ const AssetModels = () => {
           {/* TABLE */}
           <AssetModelTable
             models={models}
+            assetCategories={assetCategories}
+            assetBrands={assetBrands}
             deleteModel={handleDeleteModel}
             editModel={handleEditModel}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+            onSearch={setSearchTerm}
+            searchTerm={searchTerm}
+            loading={loading}
+            totalCount={totalCount}
           />
 
           {/* FORM */}
@@ -148,6 +282,8 @@ const AssetModels = () => {
               add={handleSubmitModel}
               close={() => setOpenForm(false)}
               editMode={editMode}
+              assetCategories={assetCategories}
+              assetBrands={assetBrands}
             />
           )}
 

@@ -12,8 +12,8 @@ const AssetModelsForm = ({
   const [formData, setFormData] = useState({
     id: "",
     asset_category_id: "",
-    asset_brand_id: "",
-    model: "",
+    brand_id: "",
+    asset_model: "",
     config: "",
   });
 
@@ -21,9 +21,9 @@ const AssetModelsForm = ({
     if (data) {
       setFormData({
         id: data.id || "",
-        asset_category_id: data.asset_category_id || "",
-        asset_brand_id: data.asset_brand_id || "",
-        model: data.model || "",
+        asset_category_id: data.asset_category_id || data.asset_category?.id || "",
+        brand_id: data.brand_id || data.asset_brand_id || data.brand?.id || "",
+        asset_model: data.asset_model || data.model || "",
         config: data.config || "",
       });
     }
@@ -43,8 +43,8 @@ const AssetModelsForm = ({
     const payload = {
       id: formData.id,
       asset_category_id: formData.asset_category_id,
-      asset_brand_id: formData.asset_brand_id,
-      model: formData.model.trim(),
+      brand_id: formData.brand_id,
+      asset_model: formData.asset_model.trim(),
       config: formData.config.trim(),
     };
 
@@ -77,12 +77,13 @@ const AssetModelsForm = ({
               {/* ID (Edit Only) */}
               {editMode && (
                 <div className="mb-3">
-                  <label className="form-label">ID</label>
+                  <label className="form-label" hidden>ID</label>
                   <input
                     type="text"
                     className="form-control"
                     value={formData.id}
                     disabled
+                    hidden
                   />
                 </div>
               )}
@@ -100,7 +101,7 @@ const AssetModelsForm = ({
                   <option value="">Select Asset Category</option>
                   {assetCategories.map((category) => (
                     <option key={category.id} value={category.id}>
-                      {category.category_name}
+                      {category.asset_category || category.category_name || category.name}
                     </option>
                   ))}
                 </select>
@@ -110,8 +111,8 @@ const AssetModelsForm = ({
               <div className="mb-3">
                 <label className="form-label">Asset Brand</label>
                 <select
-                  name="asset_brand_id"
-                  value={formData.asset_brand_id}
+                  name="brand_id"
+                  value={formData.brand_id}
                   onChange={handleChange}
                   className="form-select"
                   required
@@ -119,7 +120,7 @@ const AssetModelsForm = ({
                   <option value="">Select Asset Brand</option>
                   {assetBrands.map((brand) => (
                     <option key={brand.id} value={brand.id}>
-                      {brand.brand_name}
+                      {brand.brand || brand.brand_name || brand.name}
                     </option>
                   ))}
                 </select>
@@ -130,8 +131,8 @@ const AssetModelsForm = ({
                 <label className="form-label">Model</label>
                 <input
                   type="text"
-                  name="model"
-                  value={formData.model}
+                  name="asset_model"
+                  value={formData.asset_model}
                   onChange={handleChange}
                   placeholder="Enter Model Name"
                   className="form-control"
@@ -142,13 +143,13 @@ const AssetModelsForm = ({
               {/* Config */}
               <div className="mb-3">
                 <label className="form-label">Configuration</label>
-                <input
-                  type="text"
+                <textarea
                   name="config"
                   value={formData.config}
                   onChange={handleChange}
                   placeholder="Enter Configuration"
                   className="form-control"
+                  style={{ height: "120px" }}
                   required
                 />
               </div>

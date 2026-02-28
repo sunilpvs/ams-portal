@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 
-const AssetGroupsForm = ({ data, add, close, editMode }) => {
+const AssetFamiliesForm = ({ data, add, close, editMode }) => {
   const [formData, setFormData] = useState({
     ...data,
-    group: data?.asset_group ?? data?.name ?? "",
+    family: data?.family ?? data?.asset_family ?? data?.name ?? "",
   });
 
   useEffect(() => {
     setFormData({
       ...data,
-      group: data?.asset_group ?? data?.name ?? "",
+      family: data?.family ?? data?.asset_family ?? data?.name ?? "",
     });
   }, [data]);
 
@@ -25,7 +25,7 @@ const AssetGroupsForm = ({ data, add, close, editMode }) => {
     e.preventDefault();
 
     const payload = {
-      group: (formData.asset_group || "").trim(),
+      family: (formData.family || "").trim(),
     };
 
     if (formData.id) {
@@ -49,7 +49,7 @@ const AssetGroupsForm = ({ data, add, close, editMode }) => {
           <form onSubmit={handleSubmit}>
             <div className="modal-header">
               <h5 className="modal-title">
-                {editMode ? "Edit Asset Group" : "Add Asset Group"}
+                {editMode ? "Edit Asset Family" : "Add Asset Family"}
               </h5>
               <button
                 type="button"
@@ -61,10 +61,10 @@ const AssetGroupsForm = ({ data, add, close, editMode }) => {
             <div className="modal-body">
               <input
                 type="text"
-                name="asset_group"
-                value={formData.asset_group || ""}
+                name="family"
+                value={formData.family || ""}
                 onChange={handleChange}
-                placeholder="Asset Group Name"
+                placeholder="Asset Family Name"
                 className="form-control mb-3"
                 required
               />
@@ -89,4 +89,4 @@ const AssetGroupsForm = ({ data, add, close, editMode }) => {
   );
 };
 
-export default AssetGroupsForm;
+export default AssetFamiliesForm;

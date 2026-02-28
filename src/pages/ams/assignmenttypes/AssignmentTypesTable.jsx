@@ -225,7 +225,7 @@ function AssignmentTypesTable({
         {totalPages > 1 && (
           <div className="d-flex flex-wrap justify-content-between align-items-center mt-3">
             <div>
-              <strong>
+              <strong style={{ color: "#000" }}>
                 Showing {sortedAssignmentTypes.length} of {totalItems} assignment types
               </strong>
             </div>

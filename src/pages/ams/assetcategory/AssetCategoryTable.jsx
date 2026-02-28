@@ -5,10 +5,11 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 function AssetCategoryTable({
-  groups = [],
+  assetCategories = [],
+  assetFamilies = [],
   totalCount = 0,
-  deleteGroup = () => {},
-  editGroup = () => {},
+  deleteAssetCategory = () => {},
+  editAssetCategory = () => {},
   currentPage = 1,
   itemsPerPage = 10,
   onPageChange = () => {},
@@ -17,26 +18,32 @@ function AssetCategoryTable({
   searchTerm = "",
   loading = false,
 }) {
+  const assetFamilyNameById = (assetFamilies || []).reduce((acc, family) => {
+    if (family?.id !== undefined && family?.id !== null) {
+      acc[String(family.id)] = family.family || family.name || family.asset_family || "";
+    }
+    return acc;
+  }, {});
 
   const [sortConfig, setSortConfig] = useState({
-    key: "asset_type",
+    key: "asset_category",
     direction: "asc",
   });
 
   /* -------------------- FILTER -------------------- */
-  const filteredGroups = groups.filter((item) =>
-    (item?.asset_type || "")
+  const filteredAssetCategories = assetCategories.filter((item) =>
+    (item?.asset_category || item?.category || "")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
 
   /* -------------------- SORT -------------------- */
-  const sortedGroups = [...filteredGroups].sort((a, b) => {
+  const sortedAssetCategories = [...filteredAssetCategories].sort((a, b) => {
     const key = sortConfig.key;
     const dir = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue = (a?.[key] || "").toString().toLowerCase();
-    const bValue = (b?.[key] || "").toString().toLowerCase();
+    const aValue = (a?.[key] || a?.asset_category || a?.category || "").toString().toLowerCase();
+    const bValue = (b?.[key] || b?.asset_category || b?.category || "").toString().toLowerCase();
 
     if (aValue < bValue) return -1 * dir;
     if (aValue > bValue) return 1 * dir;
@@ -47,12 +54,12 @@ function AssetCategoryTable({
   const totalItems =
     Number.isFinite(totalCount) && totalCount > 0
       ? totalCount
-      : sortedGroups.length;
+      : sortedAssetCategories.length;
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
 
-  const paginatedGroups = sortedGroups.slice(
+  const paginatedAssetCategories = sortedAssetCategories.slice(
     startIndex,
     startIndex + itemsPerPage
   );
@@ -84,16 +91,20 @@ function AssetCategoryTable({
 
   /* -------------------- EXPORT -------------------- */
   const handleExportExcel = () => {
-    const exportData = sortedGroups.map((item, index) => ({
+    const exportData = sortedAssetCategories.map((item, index) => ({
       "Sr. No.": index + 1,
       "ID": item.id,
-      "Asset Type": item.asset_type,
-      "Asset Group ID": item.asset_group_id,
+      "Asset Category": item.asset_category || item.category || "",
+      "Asset Family":
+        assetFamilyNameById[String(item.family_id || item.asset_family_id)] ||
+        item.family_id ||
+        item.asset_family_id ||
+        "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Types");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Categories");
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
@@ -104,7 +115,7 @@ function AssetCategoryTable({
       type: "application/octet-stream",
     });
 
-    saveAs(fileData, "Asset_Type_List.xlsx");
+    saveAs(fileData, "Asset_Category_List.xlsx");
   };
 
   return (
@@ -117,7 +128,7 @@ function AssetCategoryTable({
           <div className="position-relative me-3 mb-2" style={{ flex: 1 }}>
             <input
               type="text"
-              placeholder="Search Asset Type..."
+              placeholder="Search Asset Category..."
               value={searchTerm}
               onChange={(e) => {
                 onSearch(e.target.value);
@@ -168,15 +179,15 @@ function AssetCategoryTable({
                 <th>Sr. No.</th>
              
                 <th
-                  onClick={() => handleSort("asset_type")}
+                  onClick={() => handleSort("asset_category")}
                   style={{ cursor: "pointer" }}
                 >
-                  Asset Type
+                  Asset Category
                   <span className="float-end">
-                    {getSortArrow("asset_type")}
+                    {getSortArrow("asset_category")}
                   </span>
                 </th>
-                <th>Asset Group ID</th>
+                <th>Asset Family</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -186,28 +197,32 @@ function AssetCategoryTable({
                 <tr>
                   <td colSpan="5">Loading...</td>
                 </tr>
-              ) : paginatedGroups.length === 0 ? (
+              ) : paginatedAssetCategories.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No asset types found.</td>
+                  <td colSpan="5">No asset categories found.</td>
                 </tr>
               ) : (
-                paginatedGroups.map((item, index) => (
+                paginatedAssetCategories.map((item, index) => (
                   <tr key={item.id}>
                     <td>{startIndex + index + 1}</td>
                    
-                    <td>{item.asset_type}</td>
-                    <td>{item.asset_group_id}</td>
+                    <td>{item.asset_category || item.category}</td>
+                    <td>
+                      {assetFamilyNameById[String(item.family_id || item.asset_family_id)] ||
+                        item.family_id ||
+                        item.asset_family_id}
+                    </td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => editGroup(item)}
+                        onClick={() => editAssetCategory(item)}
                       >
                         Edit
                       </button>
 
                       <button
                         className="btn btn-sm btn-outline-danger"
-                        onClick={() => deleteGroup(item.id)}
+                        onClick={() => deleteAssetCategory(item.id)}
                       >
                         Delete
                       </button>
@@ -226,10 +241,11 @@ function AssetCategoryTable({
 
 /* -------------------- PROP TYPES -------------------- */
 AssetCategoryTable.propTypes = {
-  groups: PropTypes.array,
+  assetCategories: PropTypes.array,
+  assetFamilies: PropTypes.array,
   totalCount: PropTypes.number,
-  deleteGroup: PropTypes.func,
-  editGroup: PropTypes.func,
+  deleteAssetCategory: PropTypes.func,
+  editAssetCategory: PropTypes.func,
   currentPage: PropTypes.number,
   itemsPerPage: PropTypes.number,
   onPageChange: PropTypes.func,

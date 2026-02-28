@@ -1,54 +1,53 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const AssetInfoForm = ({
   data,
   add,
   close,
   editMode,
-  assetModels = [], // dropdown
+  assetModels = [],
 }) => {
-
   const [formData, setFormData] = useState({
     id: "",
-    asset_model_id: "",
     asset_serial_number: "",
     asset_purchase_date: "",
     asset_price: "",
-    asset_warrenty_expiry: "",
+    asset_warranty_expiry: "",
+    asset_model_id: "",
   });
 
   useEffect(() => {
     if (data) {
       setFormData({
         id: data.id || "",
-        asset_model_id: data.asset_model_id || "",
         asset_serial_number: data.asset_serial_number || "",
-        asset_purchase_date: data.asset_purchase_date || "",
-        asset_price: data.asset_price || "",
-        asset_warrenty_expiry: data.asset_warrenty_expiry || "",
+        asset_purchase_date: data.asset_purchase_date || data.purchase_date || "",
+        asset_price: data.asset_price || data.price || "",
+        asset_warranty_expiry:
+          data.asset_warranty_expiry || data.warranty_expiry || "",
+        asset_model_id: data.asset_model_id || data.asset_model?.id || "",
       });
     }
   }, [data]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData({
-      ...formData,
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = (event) => {
+    event.preventDefault();
 
     const payload = {
       id: formData.id,
-      asset_model_id: formData.asset_model_id,
-      asset_serial_number: formData.asset_serial_number.trim(),
+      asset_serial_number: (formData.asset_serial_number || "").trim(),
       asset_purchase_date: formData.asset_purchase_date,
-      asset_price: Number(formData.asset_price),
-      asset_warrenty_expiry: formData.asset_warrenty_expiry,
+      asset_price: (formData.asset_price || "").toString().trim(),
+      asset_warranty_expiry: formData.asset_warranty_expiry,
+      asset_model_id: (formData.asset_model_id || "").toString(),
     };
 
     add(payload);
@@ -62,7 +61,6 @@ const AssetInfoForm = ({
     >
       <div className="modal-dialog modal-dialog-centered">
         <div className="modal-content">
-
           <form onSubmit={handleSubmit}>
             <div className="modal-header">
               <h5 className="modal-title">
@@ -76,21 +74,70 @@ const AssetInfoForm = ({
             </div>
 
             <div className="modal-body">
-
-              {/* ID (Edit Only) */}
               {editMode && (
                 <div className="mb-3">
-                  <label className="form-label">ID</label>
+                  <label className="form-label" hidden>ID</label>
                   <input
                     type="text"
                     className="form-control"
                     value={formData.id}
                     disabled
+                    hidden
                   />
                 </div>
               )}
 
-              {/* Asset Model Dropdown */}
+              <div className="mb-3">
+                <label className="form-label">Asset Serial Number</label>
+                <input
+                  type="text"
+                  name="asset_serial_number"
+                  value={formData.asset_serial_number}
+                  onChange={handleChange}
+                  placeholder="Enter Asset Serial Number"
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Asset Purchase Date</label>
+                <input
+                  type="date"
+                  name="asset_purchase_date"
+                  value={formData.asset_purchase_date}
+                  onChange={handleChange}
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Asset Price</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="asset_price"
+                  value={formData.asset_price}
+                  onChange={handleChange}
+                  placeholder="Enter Asset Price"
+                  className="form-control"
+                  required
+                />
+              </div>
+
+              <div className="mb-3">
+                <label className="form-label">Asset Warranty Expiry</label>
+                <input
+                  type="date"
+                  name="asset_warranty_expiry"
+                  value={formData.asset_warranty_expiry}
+                  onChange={handleChange}
+                  className="form-control"
+                  required
+                />
+              </div>
+
               <div className="mb-3">
                 <label className="form-label">Asset Model</label>
                 <select
@@ -103,66 +150,11 @@ const AssetInfoForm = ({
                   <option value="">Select Asset Model</option>
                   {assetModels.map((model) => (
                     <option key={model.id} value={model.id}>
-                      {model.model}
+                      {model.asset_model || model.model || model.name}
                     </option>
                   ))}
                 </select>
               </div>
-
-              {/* Serial Number */}
-              <div className="mb-3">
-                <label className="form-label">Serial Number</label>
-                <input
-                  type="text"
-                  name="asset_serial_number"
-                  value={formData.asset_serial_number}
-                  onChange={handleChange}
-                  placeholder="Enter Serial Number"
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              {/* Purchase Date */}
-              <div className="mb-3">
-                <label className="form-label">Purchase Date</label>
-                <input
-                  type="date"
-                  name="asset_purchase_date"
-                  value={formData.asset_purchase_date}
-                  onChange={handleChange}
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              {/* Price */}
-              <div className="mb-3">
-                <label className="form-label">Asset Price</label>
-                <input
-                  type="number"
-                  name="asset_price"
-                  value={formData.asset_price}
-                  onChange={handleChange}
-                  placeholder="Enter Price"
-                  className="form-control"
-                  required
-                />
-              </div>
-
-              {/* Warranty Expiry */}
-              <div className="mb-3">
-                <label className="form-label">Warranty Expiry</label>
-                <input
-                  type="date"
-                  name="asset_warrenty_expiry"
-                  value={formData.asset_warrenty_expiry}
-                  onChange={handleChange}
-                  className="form-control"
-                  required
-                />
-              </div>
-
             </div>
 
             <div className="modal-footer">
@@ -177,9 +169,7 @@ const AssetInfoForm = ({
                 Cancel
               </button>
             </div>
-
           </form>
-
         </div>
       </div>
     </div>

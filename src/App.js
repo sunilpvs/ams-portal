@@ -25,11 +25,11 @@ import AccessPending from "./pages/accessRequest/AccessPending";
 
 import Brands from "./pages/ams/brands/Brands";
 import AssignmentTypes from "./pages/ams/assignmenttypes/AssignmentTypes";
-import AssetGroups from "./pages/ams/assetgroups/AssetGroups";
-import AssetType from "./pages/ams/assettype/AssetType";
+import AssetFamilies from "./pages/ams/assetfamilies/AssetFamiles";
 import AssetCategory from "./pages/ams/assetcategory/AssetCategory";
+import AssetType from "./pages/ams/assettype/AssetType";
 import AssetModels from "./pages/ams/assetmodels/AssetModels";
-import AssetInfo from "./pages/asset/assetinfo/AssetInfo";
+import AssetInfo from "./pages/ams/asset/assetinfo/AssetInfo";
 
 import NotFound404 from "./pages/error/404NotFound";
 
@@ -73,13 +73,13 @@ const AppRoutes = () => (
             <Route path="calendar" element={<Calendar />} />
             <Route path="profile" element={<UserProfile />} />
             <Route path="activity" element={<ActivityLog />} />
-             <Route path="brands" element={<Brands />} />
-             <Route path="assignmenttypes" element={<AssignmentTypes />} />
-             <Route path="assetgroups" element={<AssetGroups />} />
-             <Route path="assettype" element={<AssetType />} />
-             <Route path="assetcategory" element={<AssetCategory />} />
-             <Route path="assetmodels" element={<AssetModels />} />
-             <Route path="assetinfo" element={<AssetInfo />} />
+             <Route path="asset-brands" element={<Brands />} />
+             <Route path="assignment-types" element={<AssignmentTypes />} />
+             <Route path="asset-families" element={<AssetFamilies />} />
+             <Route path="asset-type" element={<AssetType />} />
+             <Route path="asset-category" element={<AssetCategory />} />
+             <Route path="asset-models" element={<AssetModels />} />
+             <Route path="asset-info" element={<AssetInfo />} />
         </Route>
 
         {/* Catch-all */}

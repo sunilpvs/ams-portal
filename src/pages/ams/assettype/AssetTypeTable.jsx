@@ -5,10 +5,12 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
 function AssetTypeTable({
-  groups = [],
+  assetTypes = [],
+  assetCategories = [],
+  assignmentTypes = [],
   totalCount = 0,
-  deleteGroup = () => {},
-  editGroup = () => {},
+  deleteAssetType = () => {},
+  editAssetType = () => {},
   currentPage = 1,
   itemsPerPage = 10,
   onPageChange = () => {},
@@ -17,45 +19,67 @@ function AssetTypeTable({
   searchTerm = "",
   loading = false,
 }) {
+  const assetCategoryNameById = (assetCategories || []).reduce((acc, category) => {
+    if (category?.id !== undefined && category?.id !== null) {
+      acc[String(category.id)] = category.asset_category || category.name || "";
+    }
+    return acc;
+  }, {});
+
+  const assignmentTypeNameById = (assignmentTypes || []).reduce((acc, assignment) => {
+    if (assignment?.id !== undefined && assignment?.id !== null) {
+      acc[String(assignment.id)] = assignment.assignment_type || assignment.name || "";
+    }
+    return acc;
+  }, {});
 
   const [sortConfig, setSortConfig] = useState({
     key: "asset_type",
     direction: "asc",
   });
 
-  /* -------------------- FILTER -------------------- */
-  const filteredGroups = groups.filter((item) =>
-    (item?.asset_type || "")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const filteredAssetTypes = assetTypes.filter((item) => {
+    const searchValue = String(searchTerm || "").toLowerCase();
 
-  /* -------------------- SORT -------------------- */
-  const sortedGroups = [...filteredGroups].sort((a, b) => {
+    const combinedValues = [
+      item?.asset_type,
+      assetCategoryNameById[String(item?.asset_category_id)],
+      assignmentTypeNameById[String(item?.assignment_type_id)],
+    ]
+      .map((value) => String(value || "").toLowerCase())
+      .join(" ");
+
+    return combinedValues.includes(searchValue);
+  });
+
+  const sortedAssetTypes = [...filteredAssetTypes].sort((a, b) => {
     const key = sortConfig.key;
-    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    const direction = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue = (a?.[key] || "").toString().toLowerCase();
-    const bValue = (b?.[key] || "").toString().toLowerCase();
+    const aValue =
+      key === "asset_category"
+        ? String(assetCategoryNameById[String(a?.asset_category_id)] || "").toLowerCase()
+        : key === "assignment_type"
+        ? String(assignmentTypeNameById[String(a?.assignment_type_id)] || "").toLowerCase()
+        : String(a?.asset_type || a?.[key] || "").toLowerCase();
 
-    if (aValue < bValue) return -1 * dir;
-    if (aValue > bValue) return 1 * dir;
+    const bValue =
+      key === "asset_category"
+        ? String(assetCategoryNameById[String(b?.asset_category_id)] || "").toLowerCase()
+        : key === "assignment_type"
+        ? String(assignmentTypeNameById[String(b?.assignment_type_id)] || "").toLowerCase()
+        : String(b?.asset_type || b?.[key] || "").toLowerCase();
+
+    if (aValue < bValue) return -1 * direction;
+    if (aValue > bValue) return 1 * direction;
     return 0;
   });
 
-  /* -------------------- PAGINATION -------------------- */
   const totalItems =
-    Number.isFinite(totalCount) && totalCount > 0
-      ? totalCount
-      : sortedGroups.length;
-
+    Number.isFinite(totalCount) && totalCount > 0 ? totalCount : sortedAssetTypes.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const paginatedGroups = sortedGroups.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedAssetTypes = sortedAssetTypes;
 
   const goToPage = (pageNum) => {
     if (pageNum >= 1 && pageNum <= totalPages) {
@@ -63,7 +87,6 @@ function AssetTypeTable({
     }
   };
 
-  /* -------------------- SORT HANDLER -------------------- */
   const handleSort = (column) => {
     if (sortConfig.key === column) {
       setSortConfig({
@@ -82,13 +105,14 @@ function AssetTypeTable({
     return "";
   };
 
-  /* -------------------- EXPORT -------------------- */
   const handleExportExcel = () => {
-    const exportData = sortedGroups.map((item, index) => ({
+    const exportData = sortedAssetTypes.map((item, index) => ({
       "Sr. No.": index + 1,
-      "ID": item.id,
-      "Asset Type": item.asset_type,
-      "Asset Group ID": item.asset_group_id,
+      "Asset Type": item.asset_type || "",
+      "Asset Category":
+        assetCategoryNameById[String(item.asset_category_id)] || item.asset_category_id || "",
+      "Assignment Type":
+        assignmentTypeNameById[String(item.assignment_type_id)] || item.assignment_type_id || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -110,17 +134,14 @@ function AssetTypeTable({
   return (
     <Box m="20px">
       <div className="container mt-4 p-3 bg-white rounded shadow-sm">
-
-        {/* SEARCH + EXPORT + LIMIT */}
         <div className="d-flex align-items-center justify-content-between flex-wrap mb-3">
-
           <div className="position-relative me-3 mb-2" style={{ flex: 1 }}>
             <input
               type="text"
               placeholder="Search Asset Type..."
               value={searchTerm}
-              onChange={(e) => {
-                onSearch(e.target.value);
+              onChange={(event) => {
+                onSearch(event.target.value);
                 onPageChange(1);
               }}
               className="form-control"
@@ -128,16 +149,14 @@ function AssetTypeTable({
           </div>
 
           <div className="d-flex align-items-center mb-2">
-            <label className="form-label me-2 mb-0">
-              Items per page:
-            </label>
+            <label className="form-label me-2 mb-0">Items per page:</label>
 
             <select
               className="form-select"
               style={{ width: "120px" }}
               value={itemsPerPage}
-              onChange={(e) => {
-                onLimitChange(parseInt(e.target.value, 10));
+              onChange={(event) => {
+                onLimitChange(parseInt(event.target.value, 10));
                 onPageChange(1);
               }}
             >
@@ -148,35 +167,32 @@ function AssetTypeTable({
               ))}
             </select>
 
-            <button
-              className="btn btn-success ms-4"
-              onClick={handleExportExcel}
-            >
+            <button className="btn btn-success ms-4" onClick={handleExportExcel}>
               Export Excel
             </button>
           </div>
         </div>
 
-        {/* TABLE */}
         <div style={{ maxHeight: "350px", overflowY: "auto" }}>
           <table className="table table-hover table-bordered align-middle text-center">
-            <thead
-              className="table-dark"
-              style={{ position: "sticky", top: 0, zIndex: 1 }}
-            >
+            <thead className="table-dark" style={{ position: "sticky", top: 0, zIndex: 1 }}>
               <tr>
                 <th>Sr. No.</th>
-             
-                <th
-                  onClick={() => handleSort("asset_type")}
-                  style={{ cursor: "pointer" }}
-                >
+
+                <th onClick={() => handleSort("asset_type")} style={{ cursor: "pointer" }}>
                   Asset Type
-                  <span className="float-end">
-                    {getSortArrow("asset_type")}
-                  </span>
+                  <span className="float-end">{getSortArrow("asset_type")}</span>
                 </th>
-                <th>Asset Group ID</th>
+
+                <th onClick={() => handleSort("asset_category")} style={{ cursor: "pointer" }}>
+                  Asset Category
+                  <span className="float-end">{getSortArrow("asset_category")}</span>
+                </th>
+
+                <th onClick={() => handleSort("assignment_type")} style={{ cursor: "pointer" }}>
+                  Assignment Type
+                  <span className="float-end">{getSortArrow("assignment_type")}</span>
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -184,30 +200,34 @@ function AssetTypeTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5">Loading...</td>
+                  <td colSpan="5" className="text-muted">Loading asset types...</td>
                 </tr>
-              ) : paginatedGroups.length === 0 ? (
+              ) : paginatedAssetTypes.length === 0 ? (
                 <tr>
-                  <td colSpan="5">No asset types found.</td>
+                  <td colSpan="5" className="text-muted">No asset types found.</td>
                 </tr>
               ) : (
-                paginatedGroups.map((item, index) => (
+                paginatedAssetTypes.map((item, index) => (
                   <tr key={item.id}>
                     <td>{startIndex + index + 1}</td>
-                   
                     <td>{item.asset_type}</td>
-                    <td>{item.asset_group_id}</td>
+                    <td>
+                      {assetCategoryNameById[String(item.asset_category_id)] || item.asset_category_id}
+                    </td>
+                    <td>
+                      {assignmentTypeNameById[String(item.assignment_type_id)] || item.assignment_type_id}
+                    </td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => editGroup(item)}
+                        onClick={() => editAssetType(item)}
                       >
                         Edit
                       </button>
 
                       <button
                         className="btn btn-sm btn-outline-danger"
-                        onClick={() => deleteGroup(item.id)}
+                        onClick={() => deleteAssetType(item.id)}
                       >
                         Delete
                       </button>
@@ -219,17 +239,57 @@ function AssetTypeTable({
           </table>
         </div>
 
+        {totalPages > 1 && (
+          <div className="d-flex justify-content-between align-items-center mt-3">
+            <div>
+              <strong style={{ color: "#000" }}>
+                Showing {paginatedAssetTypes.length} of {totalItems} asset types
+              </strong>
+            </div>
+
+            <div>
+              <button
+                className="btn btn-outline-secondary btn-sm me-1"
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+
+              {[...Array(totalPages)].map((_, index) => (
+                <button
+                  key={index}
+                  className={`btn btn-sm me-1 ${
+                    currentPage === index + 1 ? "btn-primary" : "btn-outline-secondary"
+                  }`}
+                  onClick={() => goToPage(index + 1)}
+                >
+                  {index + 1}
+                </button>
+              ))}
+
+              <button
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Box>
   );
 }
 
-/* -------------------- PROP TYPES -------------------- */
 AssetTypeTable.propTypes = {
-  groups: PropTypes.array,
+  assetTypes: PropTypes.array,
+  assetCategories: PropTypes.array,
+  assignmentTypes: PropTypes.array,
   totalCount: PropTypes.number,
-  deleteGroup: PropTypes.func,
-  editGroup: PropTypes.func,
+  deleteAssetType: PropTypes.func,
+  editAssetType: PropTypes.func,
   currentPage: PropTypes.number,
   itemsPerPage: PropTypes.number,
   onPageChange: PropTypes.func,

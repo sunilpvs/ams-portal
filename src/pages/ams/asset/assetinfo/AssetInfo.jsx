@@ -1,32 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import AssetTypeForm from "./AssetTypeForm";
-import AssetTypeTable from "./AssetTypeTable";
-import Header from "../../../components/Header";
+import AssetInfoForm from "./AssetInfoForm";
+import AssetInfoTable from "./AssetInfoTable";
+import Header from "../../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
 import {
-  addAssetType,
-  deleteAssetType,
-  editAssetType,
-  getPaginatedAssetTypes,
-} from "../../../services/ams/assetTypeService";
-import { getAssetCategoryCombo } from "../../../services/ams/assetCategoryService";
-import { getAssignmentTypesCombo } from "../../../services/ams/assignmentTypeService";
+  addAssetInfo,
+  deleteAssetInfo,
+  editAssetInfo,
+  getPaginatedAssetInfo,
+} from "../../../../services/ams/assetInfoService";
+import { getAssetModelCombo } from "../../../../services/ams/assetModelService";
 
-const AssetType = () => {
-  const [assetTypes, setAssetTypes] = useState([]);
+const AssetInfo = () => {
+  const [assetInfos, setAssetInfos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [totalCount, setTotalCount] = useState(0);
-
-  const [assetCategories, setAssetCategories] = useState([]);
-  const [assignmentTypes, setAssignmentTypes] = useState([]);
+  const [assetModels, setAssetModels] = useState([]);
 
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedType, setSelectedType] = useState(null);
+  const [selectedAssetInfo, setSelectedAssetInfo] = useState(null);
 
   const [importResult, setImportResult] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -34,23 +31,15 @@ const AssetType = () => {
 
   const fileInputRef = useRef(null);
 
-  const extractAssetTypesFromResponse = (response) => {
-    const root = response?.data;
-    const payload = root?.data ?? root;
+  const extractAssetInfoFromResponse = (response) => {
+    const payload = response?.data?.asset_info;
+    console.log("Extracted Asset Info Payload:", payload);
 
-    const list =
-      payload?.rows ??
-      payload?.items ??
-      payload?.asset_types ??
-      payload?.data ??
-      (Array.isArray(payload) ? payload : []);
+    // list of asset info
+    const list = (Array.isArray(payload) ? payload : []);
 
-    const total =
-      payload?.totalCount ??
-      payload?.total ??
-      payload?.count ??
-      payload?.pagination?.total ??
-      (Array.isArray(list) ? list.length : 0);
+    // get total count from response, fallback to list length if not provided
+    const total = response?.data?.total ?? (Array.isArray(list) ? list.length : 0);
 
     return {
       list: Array.isArray(list) ? list : [],
@@ -71,118 +60,121 @@ const AssetType = () => {
     return Array.isArray(list) ? list : [];
   };
 
-  const fetchAssetTypes = useCallback(async () => {
+  const fetchAssetInfo = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await getPaginatedAssetTypes(currentPage, itemsPerPage);
-      const { list, total } = extractAssetTypesFromResponse(response);
-      setAssetTypes(list);
+      const response = await getPaginatedAssetInfo(currentPage, itemsPerPage);
+      const { list, total } = extractAssetInfoFromResponse(response);
+      setAssetInfos(list);
       setTotalCount(total);
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to fetch asset types");
-      setAssetTypes([]);
+      toast.error(error?.response?.data?.error || "Failed to fetch asset info");
+      setAssetInfos([]);
       setTotalCount(0);
     } finally {
       setLoading(false);
     }
   }, [currentPage, itemsPerPage]);
 
-  const fetchAssetCategories = useCallback(async () => {
+  const fetchAssetModels = useCallback(async () => {
     try {
-      const response = await getAssetCategoryCombo(["id", "asset_category"]);
-      setAssetCategories(extractComboListFromResponse(response));
+      const response = await getAssetModelCombo(["id", "asset_model"]);
+      setAssetModels(extractComboListFromResponse(response));
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to fetch asset categories");
-      setAssetCategories([]);
-    }
-  }, []);
-
-  const fetchAssignmentTypes = useCallback(async () => {
-    try {
-      const response = await getAssignmentTypesCombo(["id", "assignment_type"]);
-      setAssignmentTypes(extractComboListFromResponse(response));
-    } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to fetch assignment types");
-      setAssignmentTypes([]);
+      toast.error(error?.response?.data?.error || "Failed to fetch asset models");
+      setAssetModels([]);
     }
   }, []);
 
   useEffect(() => {
-    fetchAssetTypes();
-  }, [fetchAssetTypes]);
+    fetchAssetInfo();
+  }, [fetchAssetInfo]);
 
   useEffect(() => {
-    fetchAssetCategories();
-    fetchAssignmentTypes();
-  }, [fetchAssetCategories, fetchAssignmentTypes]);
+    fetchAssetModels();
+  }, [fetchAssetModels]);
 
   const handleDelete = async (id) => {
     try {
-      await deleteAssetType(id);
+      await deleteAssetInfo(id);
       toast.success("Deleted Successfully");
 
-      if (assetTypes.length === 1 && currentPage > 1) {
+      if (assetInfos.length === 1 && currentPage > 1) {
         setCurrentPage((prev) => prev - 1);
         return;
       }
 
-      fetchAssetTypes();
+      fetchAssetInfo();
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to delete asset type");
+      toast.error(error?.response?.data?.error || "Failed to delete asset info");
     }
   };
 
   const handleSubmit = async (formData) => {
     const payload = {
-      asset_type: (formData?.asset_type || "").trim(),
-      asset_category_id: Number(formData?.asset_category_id),
-      assignment_type_id: Number(formData?.assignment_type_id),
+      asset_serial_number: (formData?.asset_serial_number || "").trim(),
+      asset_purchase_date: formData?.asset_purchase_date || "",
+      asset_price: (formData?.asset_price || "").toString().trim(),
+      asset_warranty_expiry: formData?.asset_warranty_expiry || "",
+      asset_model_id: (formData?.asset_model_id || "").toString(),
     };
 
-    if (!payload.asset_type) {
-      toast.error("Asset type is required");
+    if (!payload.asset_serial_number) {
+      toast.error("Asset serial number is required");
       return;
     }
 
-    if (!payload.asset_category_id) {
-      toast.error("Asset category is required");
+    if (!payload.asset_purchase_date) {
+      toast.error("Asset purchase date is required");
       return;
     }
 
-    if (!payload.assignment_type_id) {
-      toast.error("Assignment type is required");
+    if (!payload.asset_price) {
+      toast.error("Asset price is required");
+      return;
+    }
+
+    if (!payload.asset_warranty_expiry) {
+      toast.error("Asset warranty expiry is required");
+      return;
+    }
+
+    if (!payload.asset_model_id) {
+      toast.error("Asset model is required");
       return;
     }
 
     try {
       if (editMode && formData?.id) {
-        await editAssetType(formData.id, payload);
+        await editAssetInfo(formData.id, payload);
         toast.success("Updated Successfully");
       } else {
-        await addAssetType(payload);
+        await addAssetInfo(payload);
         toast.success("Added Successfully");
       }
 
       setOpenForm(false);
       setEditMode(false);
-      setSelectedType(null);
-      fetchAssetTypes();
+      setSelectedAssetInfo(null);
+      fetchAssetInfo();
     } catch (error) {
-      toast.error(error?.response?.data?.error || "Failed to save asset type");
+      toast.error(error?.response?.data?.error || "Failed to save asset info");
     }
   };
 
   const handleEdit = (item) => {
-    setSelectedType(item);
+    setSelectedAssetInfo(item);
     setEditMode(true);
     setOpenForm(true);
   };
 
   const handleAdd = () => {
-    setSelectedType({
-      asset_type: "",
-      asset_category_id: "",
-      assignment_type_id: "",
+    setSelectedAssetInfo({
+      asset_serial_number: "",
+      asset_purchase_date: "",
+      asset_price: "",
+      asset_warranty_expiry: "",
+      asset_model_id: "",
     });
     setEditMode(false);
     setOpenForm(true);
@@ -194,17 +186,15 @@ const AssetType = () => {
 
   const handleFileChange = () => {
     const dummyImportResult = {
-      total_rows: 15,
-      inserted: 4,
-      skipped_duplicate_db: 11,
+      total_rows: 10,
+      inserted: 3,
+      skipped_duplicate_db: 7,
     };
 
     const dummyDuplicates = [
-      { id: 2, category_name: "Office Equipment" },
-      { id: 3, category_name: "Furniture" },
-      { id: 4, category_name: "Furniture" },
-      { id: 5, category_name: "Furniture" },
-      { id: 6, category_name: "Furniture" },
+      { id: 2, asset_serial_number: "AST-0002" },
+      { id: 3, asset_serial_number: "AST-0003" },
+      { id: 4, asset_serial_number: "AST-0003" },
     ];
 
     setImportResult(dummyImportResult);
@@ -215,7 +205,7 @@ const AssetType = () => {
   };
 
   const handleUpdateDuplicates = () => {
-    toast.success("Duplicate records updated (Frontend)");
+    toast.success("Duplicate asset info updated (Frontend)");
     setShowImportModal(false);
   };
 
@@ -224,11 +214,11 @@ const AssetType = () => {
       <div className="row justify-content-center">
         <div className="col-md-10">
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Asset Type Management" subtitle="AMS / Asset Types" />
+            <Header title="Asset Info Management" subtitle="Admin / Asset Info" />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
-                + Add Asset Type
+                + Add Asset Info
               </button>
 
               <button className="btn btn-info" onClick={handleImportClick}>
@@ -245,12 +235,11 @@ const AssetType = () => {
             </div>
           </div>
 
-          <AssetTypeTable
-            assetTypes={assetTypes}
-            assetCategories={assetCategories}
-            assignmentTypes={assignmentTypes}
-            deleteAssetType={handleDelete}
-            editAssetType={handleEdit}
+          <AssetInfoTable
+            assetInfos={assetInfos}
+            assetModels={assetModels}
+            deleteAssetInfo={handleDelete}
+            editAssetInfo={handleEdit}
             currentPage={currentPage}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
@@ -262,13 +251,12 @@ const AssetType = () => {
           />
 
           {openForm && (
-            <AssetTypeForm
-              data={selectedType}
+            <AssetInfoForm
+              data={selectedAssetInfo}
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
-              assetCategories={assetCategories}
-              assignmentTypes={assignmentTypes}
+              assetModels={assetModels}
             />
           )}
 
@@ -299,7 +287,7 @@ const AssetType = () => {
                               <tr>
                                 <th>S.No</th>
                                 <th>ID</th>
-                                <th>Asset Category</th>
+                                <th>Asset Serial Number</th>
                                 <th>Status</th>
                               </tr>
                             </thead>
@@ -308,7 +296,7 @@ const AssetType = () => {
                                 <tr key={row.id}>
                                   <td>{index + 1}</td>
                                   <td>{row.id}</td>
-                                  <td>{row.category_name}</td>
+                                  <td>{row.asset_serial_number}</td>
                                   <td>
                                     <span className="text-danger fw-bold">Duplicate</span>
                                   </td>
@@ -343,4 +331,4 @@ const AssetType = () => {
   );
 };
 
-export default AssetType;
+export default AssetInfo;

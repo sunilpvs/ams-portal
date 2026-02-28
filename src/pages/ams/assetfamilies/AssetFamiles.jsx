@@ -1,16 +1,27 @@
-import { useEffect, useState, useRef } from "react";
-import AssetGroupForm from "./AssetGroupsForm";
-import AssetGroupTable from "./AssetGroupsTable";
+import { useCallback, useEffect, useRef, useState } from "react";
+import AssetFamiliesForm from "./AssetFamilesForm";
+import AssetFamiliesTable from "./AssetFamiliesTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
+import {
+  addAssetFamily,
+  deleteAssetFamily,
+  editAssetFamily,
+  getPaginatedAssetFamilies,
+} from "../../../services/ams/assetFamilyService";
 
-const AssetGroups = () => {
+const AssetFamilies = () => {
+  const [assetFamilies, setAssetFamilies] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
 
-  const [assetGroups, setAssetGroups] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedAssetGroup, setSelectedAssetGroup] = useState(null);
+  const [selectedAssetFamily, setSelectedAssetFamily] = useState(null);
 
   const [importResult, setImportResult] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -18,55 +29,95 @@ const AssetGroups = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY DATA ---------------- */
+  const extractAssetFamiliesFromResponse = (response) => {
+    const payload = response?.data?.asset_families;
+
+    // list of asset families
+    const list = (Array.isArray(payload) ? payload : []);
+
+    // get total count from response, fallback to list length if not provided
+    const total = response?.data?.total ?? (Array.isArray(list) ? list.length : 0);
+
+    return {
+      list: Array.isArray(list) ? list : [],
+      total: Number.isFinite(Number(total)) ? Number(total) : 0,
+    };
+  };
+
+  const fetchAssetFamilies = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getPaginatedAssetFamilies(currentPage, itemsPerPage);
+      const { list, total } = extractAssetFamiliesFromResponse(response);
+      setAssetFamilies(list);
+      setTotalCount(total);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to fetch asset families");
+      setAssetFamilies([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage]);
+
   useEffect(() => {
-    const dummyData = [
-      { id: 1, group: "Laptops" },
-      { id: 2, group: "Desktops" },
-      { id: 3, group: "Printers" },
-      { id: 4, group: "Monitors" },
-      { id: 5, group: "Networking Devices" }
-    ];
-    setAssetGroups(dummyData);
-  }, []);
+    fetchAssetFamilies();
+  }, [fetchAssetFamilies]);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = (id) => {
-    setAssetGroups(prev => prev.filter(g => g.id !== id));
-    toast.success("Deleted Successfully");
+  const handleDelete = async (id) => {
+    try {
+      await deleteAssetFamily(id);
+      toast.success("Deleted Successfully");
+
+      if (assetFamilies.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+        return;
+      }
+
+      fetchAssetFamilies();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to delete asset family");
+    }
   };
 
   /* ---------------- ADD / EDIT ---------------- */
-  const handleSubmit = (formData) => {
+  const handleSubmit = async (formData) => {
+    const payload = {
+      family: (formData?.family || "").trim(),
+    };
 
-    if (editMode) {
-      setAssetGroups(prev =>
-        prev.map(g =>
-          g.id === formData.id ? { ...g, group: formData.group } : g
-        )
-      );
-      toast.success("Updated Successfully");
-    } else {
-      setAssetGroups(prev => [
-        ...prev,
-        { id: prev.length + 1, group: formData.group }
-      ]);
-      toast.success("Added Successfully");
+    if (!payload.family) {
+      toast.error("Asset family is required");
+      return;
     }
 
-    setOpenForm(false);
-    setEditMode(false);
-    setSelectedAssetGroup(null);
+    try {
+      if (editMode && formData?.id) {
+        await editAssetFamily(formData.id, payload);
+        toast.success("Updated Successfully");
+      } else {
+        await addAssetFamily(payload);
+        toast.success("Added Successfully");
+      }
+
+      setOpenForm(false);
+      setEditMode(false);
+      setSelectedAssetFamily(null);
+      fetchAssetFamilies();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to save asset family");
+    }
   };
 
-  const handleEdit = (group) => {
-    setSelectedAssetGroup(group);
+  const handleEdit = (family) => {
+    setSelectedAssetFamily(family);
     setEditMode(true);
     setOpenForm(true);
   };
 
   const handleAdd = () => {
-    setSelectedAssetGroup({ group: "" });
+    setSelectedAssetFamily({ family: "" });
     setEditMode(false);
     setOpenForm(true);
   };
@@ -85,19 +136,19 @@ const AssetGroups = () => {
     };
 
     const dummyDuplicates = [
-      { id: 2, group: "Desktops" },
-      { id: 3, group: "Printers" },
-      { id: 4, group: "Printers" },
-      { id: 5, group: "Printers" },
-      { id: 6, group: "Printers" },
-      { id: 7, group: "Printers" },
-      { id: 8, group: "Printers" },
-      { id: 9, group: "Printers" },
-      { id: 10, group: "Printers" },
-      { id: 11, group: "Printers" },
-      { id: 12, group: "Printers" },
-      { id: 13, group: "Printers" },
-      { id: 14, group: "Printers" }
+      { id: 2, family: "Desktops" },
+      { id: 3, family: "Printers" },
+      { id: 4, family: "Printers" },
+      { id: 5, family: "Printers" },
+      { id: 6, family: "Printers" },
+      { id: 7, family: "Printers" },
+      { id: 8, family: "Printers" },
+      { id: 9, family: "Printers" },
+      { id: 10, family: "Printers" },
+      { id: 11, family: "Printers" },
+      { id: 12, family: "Printers" },
+      { id: 13, family: "Printers" },
+      { id: 14, family: "Printers" }
     ];
 
     setImportResult(dummyImportResult);
@@ -121,13 +172,13 @@ const AssetGroups = () => {
           {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
             <Header
-              title="Asset Group Management"
-              subtitle="Admin / Asset Groups"
+              title="Asset Family Management"
+              subtitle="AMS / Asset Families"
             />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
-                + Add Asset Group
+                + Add Asset Family
               </button>
 
               <button className="btn btn-info" onClick={handleImportClick}>
@@ -145,24 +196,24 @@ const AssetGroups = () => {
           </div>
 
           {/* TABLE */}
-          <AssetGroupTable
-            assetGroups={assetGroups}
-            deleteAssetGroup={handleDelete}
-            editAssetGroup={handleEdit}
-            currentPage={1}
-            itemsPerPage={10}
-            onPageChange={() => {}}
-            onLimitChange={() => {}}
-            onSearch={() => {}}
-            searchTerm=""
-            loading={false}
-            totalCount={assetGroups.length}
+          <AssetFamiliesTable
+            families={assetFamilies}
+            deleteFamily={handleDelete}
+            editFamily={handleEdit}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+            onSearch={setSearchTerm}
+            searchTerm={searchTerm}
+            loading={loading}
+            totalCount={totalCount}
           />
 
           {/* FORM */}
           {openForm && (
-            <AssetGroupForm
-              data={selectedAssetGroup}
+            <AssetFamiliesForm
+              data={selectedAssetFamily}
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
@@ -205,7 +256,7 @@ const AssetGroups = () => {
                               <tr>
                                 <th>S.No</th>
                                 <th>ID</th>
-                                <th>Group</th>
+                                <th>Family</th>
                                 <th>Status</th>
                               </tr>
                             </thead>
@@ -214,7 +265,7 @@ const AssetGroups = () => {
                                 <tr key={row.id}>
                                   <td>{index + 1}</td>
                                   <td>{row.id}</td>
-                                  <td>{row.group}</td>
+                                  <td>{row.family}</td>
                                   <td>
                                     <span className="text-danger fw-bold">
                                       Duplicate
@@ -256,4 +307,4 @@ const AssetGroups = () => {
   );
 };
 
-export default AssetGroups;
+export default AssetFamilies;

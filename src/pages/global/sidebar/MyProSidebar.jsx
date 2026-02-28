@@ -224,42 +224,42 @@ const MyProSidebar = () => {
 
 <MenuItem
   icon={<BrandingWatermarkOutlinedIcon />}
-  routerLink={<Link to="/brands" />}
+  routerLink={<Link to="/asset-brands" />}
 >
   Brands
 </MenuItem>
 
 <MenuItem
   icon={<AssignmentOutlinedIcon />}
-  routerLink={<Link to="/assignmenttypes" />}
+  routerLink={<Link to="/assignment-types" />}
 >
   Assignment Types
 </MenuItem>
 
 <MenuItem
   icon={<LayersOutlinedIcon />}
-  routerLink={<Link to="/assetgroups" />}
+  routerLink={<Link to="/asset-families" />}
 >
-  Asset Groups
+  Asset Family
 </MenuItem>
 
 <MenuItem
   icon={<CategoryOutlinedIcon />}
-  routerLink={<Link to="/assettype" />}
+  routerLink={<Link to="/asset-type" />}
 >
   Asset Types
 </MenuItem>
 
 <MenuItem
   icon={<CategoryOutlinedIcon />}
-  routerLink={<Link to="/assetcategory" />}
+  routerLink={<Link to="/asset-category" />}
 >
   Asset Category
 </MenuItem>
 
 <MenuItem
   icon={<Inventory2OutlinedIcon />}
-  routerLink={<Link to="/assetmodels" />}
+  routerLink={<Link to="/asset-models" />}
 >
   Asset Models
 </MenuItem>
@@ -282,7 +282,7 @@ const MyProSidebar = () => {
 
 <MenuItem
   icon={<Inventory2OutlinedIcon />}
-  routerLink={<Link to="/assetinfo" />}
+  routerLink={<Link to="/asset-info" />}
 >
   Asset Info
 </MenuItem>

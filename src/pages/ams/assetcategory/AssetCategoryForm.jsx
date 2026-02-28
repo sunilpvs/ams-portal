@@ -5,24 +5,20 @@ const AssetCategoryForm = ({
   add,
   close,
   editMode,
-  assetTypes = [],        // dropdown 1
-  assignmentTypes = [],   // dropdown 2
+  assetFamilies = [],
 }) => {
-
   const [formData, setFormData] = useState({
     id: "",
     asset_category: "",
-    asset_type_id: "",
-    assignment_type_id: "",
+    family_id: "",
   });
 
   useEffect(() => {
     if (data) {
       setFormData({
         id: data.id || "",
-        asset_category: data.asset_category || "",
-        asset_type_id: data.asset_type_id || "",
-        assignment_type_id: data.assignment_type_id || "",
+        asset_category: data.asset_category || data.category || "",
+        family_id: data.family_id || data.asset_family_id || data.asset_family?.id || "",
       });
     }
   }, [data]);
@@ -41,8 +37,7 @@ const AssetCategoryForm = ({
     const payload = {
       id: formData.id,
       asset_category: formData.asset_category.trim(),
-      asset_type_id: formData.asset_type_id,
-      assignment_type_id: formData.assignment_type_id,
+      family_id: formData.family_id,
     };
 
     add(payload);
@@ -71,14 +66,15 @@ const AssetCategoryForm = ({
 
             <div className="modal-body">
 
-              {/* ID (Edit Only) */}
+              {/* ID - Only in Edit Mode */}
               {editMode && (
                 <div className="mb-3">
-                  <label className="form-label">ID</label>
+                  <label className="form-label" hidden>ID</label>
                   <input
                     type="text"
                     className="form-control"
                     value={formData.id}
+                    hidden
                     disabled
                   />
                 </div>
@@ -98,39 +94,20 @@ const AssetCategoryForm = ({
                 />
               </div>
 
-              {/* Asset Type Dropdown */}
+              {/* Asset Family Dropdown */}
               <div className="mb-3">
-                <label className="form-label">Asset Type</label>
+                <label className="form-label">Asset Family</label>
                 <select
-                  name="asset_type_id"
-                  value={formData.asset_type_id}
+                  name="family_id"
+                  value={formData.family_id}
                   onChange={handleChange}
                   className="form-select"
                   required
                 >
-                  <option value="">Select Asset Type</option>
-                  {assetTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.asset_type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Assignment Type Dropdown */}
-              <div className="mb-3">
-                <label className="form-label">Assignment Type</label>
-                <select
-                  name="assignment_type_id"
-                  value={formData.assignment_type_id}
-                  onChange={handleChange}
-                  className="form-select"
-                  required
-                >
-                  <option value="">Select Assignment Type</option>
-                  {assignmentTypes.map((assign) => (
-                    <option key={assign.id} value={assign.id}>
-                      {assign.assignment_type}
+                  <option value="">Select Asset Family</option>
+                  {assetFamilies.map((family) => (
+                    <option key={family.id} value={family.id}>
+                      {family.family || family.asset_family || family.name}
                     </option>
                   ))}
                 </select>

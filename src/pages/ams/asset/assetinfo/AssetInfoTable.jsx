@@ -4,13 +4,12 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-function AssetModelsTable({
-  models = [],
-  assetCategories = [],
-  assetBrands = [],
+function AssetInfoTable({
+  assetInfos = [],
+  assetModels = [],
   totalCount = 0,
-  deleteModel = () => {},
-  editModel = () => {},
+  deleteAssetInfo = () => {},
+  editAssetInfo = () => {},
   currentPage = 1,
   itemsPerPage = 10,
   onPageChange = () => {},
@@ -19,79 +18,59 @@ function AssetModelsTable({
   searchTerm = "",
   loading = false,
 }) {
-  const categoryNameById = (assetCategories || []).reduce((acc, category) => {
-    if (category?.id !== undefined && category?.id !== null) {
-      acc[String(category.id)] =
-        category.asset_category || category.category_name || category.name || "";
-    }
-    return acc;
-  }, {});
-
-  const brandNameById = (assetBrands || []).reduce((acc, brand) => {
-    if (brand?.id !== undefined && brand?.id !== null) {
-      acc[String(brand.id)] = brand.brand || brand.brand_name || brand.name || "";
+  const modelNameById = (assetModels || []).reduce((acc, model) => {
+    if (model?.id !== undefined && model?.id !== null) {
+      acc[String(model.id)] = model.asset_model || model.model || model.name || "";
     }
     return acc;
   }, {});
 
   const [sortConfig, setSortConfig] = useState({
-    key: "asset_model",
+    key: "asset_serial_number",
     direction: "asc",
   });
 
-  /* -------------------- SAFE FILTER -------------------- */
-  const filteredModels = models.filter((item) => {
+  const filteredAssetInfo = assetInfos.filter((item) => {
     const searchValue = String(searchTerm || "").toLowerCase();
 
     const combinedValues = [
-      item?.asset_model,
-      item?.model,
-      item?.config,
-      categoryNameById[String(item?.asset_category_id)],
-      brandNameById[String(item?.brand_id || item?.asset_brand_id)],
+      item?.asset_serial_number,
+      item?.asset_purchase_date,
+      item?.asset_price,
+      item?.asset_warranty_expiry,
+      modelNameById[String(item?.asset_model_id)],
     ]
-      .map((val) => String(val || "").toLowerCase())
+      .map((value) => String(value || "").toLowerCase())
       .join(" ");
 
     return combinedValues.includes(searchValue);
   });
 
-  /* -------------------- SORT -------------------- */
-  const sortedModels = [...filteredModels].sort((a, b) => {
+  const sortedAssetInfo = [...filteredAssetInfo].sort((a, b) => {
     const key = sortConfig.key;
     const direction = sortConfig.direction === "asc" ? 1 : -1;
 
     const aValue =
-      key === "asset_category"
-        ? String(categoryNameById[String(a?.asset_category_id)] || "").toLowerCase()
-        : key === "brand"
-        ? String(brandNameById[String(a?.brand_id || a?.asset_brand_id)] || "").toLowerCase()
-        : String(a?.[key] || a?.asset_model || a?.model || "").toLowerCase();
+      key === "asset_model"
+        ? String(modelNameById[String(a?.asset_model_id)] || "").toLowerCase()
+        : String(a?.[key] || "").toLowerCase();
 
     const bValue =
-      key === "asset_category"
-        ? String(categoryNameById[String(b?.asset_category_id)] || "").toLowerCase()
-        : key === "brand"
-        ? String(brandNameById[String(b?.brand_id || b?.asset_brand_id)] || "").toLowerCase()
-        : String(b?.[key] || b?.asset_model || b?.model || "").toLowerCase();
+      key === "asset_model"
+        ? String(modelNameById[String(b?.asset_model_id)] || "").toLowerCase()
+        : String(b?.[key] || "").toLowerCase();
 
     if (aValue < bValue) return -1 * direction;
     if (aValue > bValue) return 1 * direction;
     return 0;
   });
 
-  /* -------------------- PAGINATION -------------------- */
   const totalItems =
-    Number.isFinite(totalCount) && totalCount > 0
-      ? totalCount
-      : sortedModels.length;
-
+    Number.isFinite(totalCount) && totalCount > 0 ? totalCount : sortedAssetInfo.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedAssetInfo = sortedAssetInfo;
 
-  const paginatedModels = sortedModels;
-
-  /* -------------------- SORT HANDLER -------------------- */
   const handleSort = (column) => {
     if (sortConfig.key === column) {
       setSortConfig({
@@ -110,25 +89,19 @@ function AssetModelsTable({
     return "";
   };
 
-  /* -------------------- EXPORT -------------------- */
   const handleExportExcel = () => {
-    const exportData = sortedModels.map((item, index) => ({
+    const exportData = sortedAssetInfo.map((item, index) => ({
       "Sr. No.": index + 1,
-      ID: item.id,
-      "Asset Category":
-        categoryNameById[String(item.asset_category_id)] || item.asset_category_id || "",
-      "Asset Brand":
-        brandNameById[String(item.brand_id || item.asset_brand_id)] ||
-        item.brand_id ||
-        item.asset_brand_id ||
-        "",
-      "Asset Model": item.asset_model || item.model || "",
-      Configuration: item.config,
+      "Asset Serial Number": item.asset_serial_number || "",
+      "Asset Purchase Date": item.asset_purchase_date || "",
+      "Asset Price": item.asset_price || "",
+      "Asset Warranty Expiry": item.asset_warranty_expiry || "",
+      "Asset Model": modelNameById[String(item.asset_model_id)] || item.asset_model_id || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Models");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Info");
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
@@ -139,26 +112,23 @@ function AssetModelsTable({
       type: "application/octet-stream",
     });
 
-    saveAs(fileData, "Asset_Model_List.xlsx");
+    saveAs(fileData, "Asset_Info_List.xlsx");
   };
 
   return (
     <Box m="20px">
       <div className="container mt-4 p-3 bg-white rounded shadow-sm">
-
-        {/* SEARCH + EXPORT + LIMIT */}
         <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-
           <input
             type="text"
-            placeholder="Search Asset Model..."
+            placeholder="Search Asset Info..."
             value={searchTerm}
-            onChange={(e) => {
-              onSearch(String(e.target.value || ""));
+            onChange={(event) => {
+              onSearch(String(event.target.value || ""));
               onPageChange(1);
             }}
             className="form-control me-3 mb-2"
-            style={{ maxWidth: "300px" }}
+            style={{ maxWidth: "320px" }}
           />
 
           <div className="d-flex align-items-center mb-2">
@@ -168,8 +138,8 @@ function AssetModelsTable({
               className="form-select"
               style={{ width: "100px" }}
               value={itemsPerPage}
-              onChange={(e) => {
-                onLimitChange(parseInt(e.target.value, 10));
+              onChange={(event) => {
+                onLimitChange(parseInt(event.target.value, 10));
                 onPageChange(1);
               }}
             >
@@ -180,53 +150,32 @@ function AssetModelsTable({
               ))}
             </select>
 
-            <button
-              className="btn btn-success ms-3"
-              onClick={handleExportExcel}
-            >
+            <button className="btn btn-success ms-3" onClick={handleExportExcel}>
               Export Excel
             </button>
           </div>
         </div>
 
-        {/* TABLE */}
         <div style={{ maxHeight: "400px", overflowY: "auto" }}>
           <table className="table table-bordered table-hover text-center align-middle">
-            <thead
-              className="table-dark"
-              style={{ position: "sticky", top: 0 }}
-            >
+            <thead className="table-dark" style={{ position: "sticky", top: 0 }}>
               <tr>
                 <th>Sr. No.</th>
-
-                <th
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleSort("asset_category")}
-                >
-                  Asset Category{getSortArrow("asset_category")}
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_serial_number")}>
+                  Asset Serial Number{getSortArrow("asset_serial_number")}
                 </th>
-
-                <th
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleSort("brand")}
-                >
-                  Asset Brand{getSortArrow("brand")}
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_purchase_date")}>
+                  Purchase Date{getSortArrow("asset_purchase_date")}
                 </th>
-
-                <th
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleSort("asset_model")}
-                >
-                  Model{getSortArrow("asset_model")}
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_price")}>
+                  Asset Price{getSortArrow("asset_price")}
                 </th>
-
-                <th
-                  style={{ cursor: "pointer", width: "300px" }}
-                  onClick={() => handleSort("config")}
-                >
-                  Configuration{getSortArrow("config")}
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_warranty_expiry")}>
+                  Warranty Expiry{getSortArrow("asset_warranty_expiry")}
                 </th>
-
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_model")}>
+                  Asset Model{getSortArrow("asset_model")}
+                </th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -234,42 +183,32 @@ function AssetModelsTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6">Loading...</td>
+                  <td colSpan="7">Loading...</td>
                 </tr>
-              ) : paginatedModels.length === 0 ? (
+              ) : paginatedAssetInfo.length === 0 ? (
                 <tr>
-                  <td colSpan="6">No asset models found.</td>
+                  <td colSpan="7">No asset info found.</td>
                 </tr>
               ) : (
-                paginatedModels.map((item, index) => (
+                paginatedAssetInfo.map((item, index) => (
                   <tr key={item.id}>
                     <td>{startIndex + index + 1}</td>
-                    <td>{categoryNameById[String(item.asset_category_id)] || item.asset_category_id}</td>
-                    <td>
-                      {brandNameById[String(item.brand_id || item.asset_brand_id)] ||
-                        item.brand_id ||
-                        item.asset_brand_id}
-                    </td>
-                    <td>{item.asset_model || item.model}</td>
-                    <td>
-                      <textarea
-                        className="form-control"
-                        value={item.config}
-                        readOnly
-                        style={{ height: "70px", resize: "vertical" }}
-                      />
-                    </td>
+                    <td>{item.asset_serial_number}</td>
+                    <td>{item.asset_purchase_date}</td>
+                    <td>{item.asset_price}</td>
+                    <td>{item.asset_warranty_expiry}</td>
+                    <td>{modelNameById[String(item.asset_model_id)] || item.asset_model_id}</td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => editModel(item)}
+                        onClick={() => editAssetInfo(item)}
                       >
                         Edit
                       </button>
 
                       <button
                         className="btn btn-sm btn-outline-danger"
-                        onClick={() => deleteModel(item.id)}
+                        onClick={() => deleteAssetInfo(item.id)}
                       >
                         Delete
                       </button>
@@ -281,12 +220,11 @@ function AssetModelsTable({
           </table>
         </div>
 
-        {/* PAGINATION */}
         {totalPages > 1 && (
           <div className="d-flex justify-content-between align-items-center mt-3">
             <div>
               <strong style={{ color: "#000" }}>
-                Showing {paginatedModels.length} of {totalItems} asset models
+                Showing {paginatedAssetInfo.length} of {totalItems} asset info records
               </strong>
             </div>
 
@@ -321,20 +259,17 @@ function AssetModelsTable({
             </div>
           </div>
         )}
-
       </div>
     </Box>
   );
 }
 
-/* -------------------- PROP TYPES -------------------- */
-AssetModelsTable.propTypes = {
-  models: PropTypes.array,
-  assetCategories: PropTypes.array,
-  assetBrands: PropTypes.array,
+AssetInfoTable.propTypes = {
+  assetInfos: PropTypes.array,
+  assetModels: PropTypes.array,
   totalCount: PropTypes.number,
-  deleteModel: PropTypes.func,
-  editModel: PropTypes.func,
+  deleteAssetInfo: PropTypes.func,
+  editAssetInfo: PropTypes.func,
   currentPage: PropTypes.number,
   itemsPerPage: PropTypes.number,
   onPageChange: PropTypes.func,
@@ -344,4 +279,4 @@ AssetModelsTable.propTypes = {
   loading: PropTypes.bool,
 };
 
-export default AssetModelsTable;
+export default AssetInfoTable;

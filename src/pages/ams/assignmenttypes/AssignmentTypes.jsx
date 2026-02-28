@@ -1,12 +1,24 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AssignmentTypeForm from "./AssignmentTypesForm";
 import AssignmentTypesTable from "./AssignmentTypesTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
+import {
+  addAssignmentType,
+  deleteAssignmentType,
+  editAssignmentType,
+  getPaginatedAssignmentTypes,
+} from "../../../services/ams/assignmentTypeService";
 
 const AssignmentTypes = () => {
   const [allAssignmentTypes, setAllAssignmentTypes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [totalCount, setTotalCount] = useState(0);
+
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedAssignmentType, setSelectedAssignmentType] = useState(null);
@@ -17,51 +29,86 @@ const AssignmentTypes = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY DATA ---------------- */
+  const extractAssignmentTypesFromResponse = (response) => {
+    const payload = response?.data?.assignment_types;
+
+    // list of assignment types
+    const list = (Array.isArray(payload) ? payload : []);
+
+    // get total count from response, fallback to list length if not provided
+    const total = response?.data?.total ?? (Array.isArray(list) ? list.length : 0);
+
+    return {
+      list: Array.isArray(list) ? list : [],
+      total: Number.isFinite(Number(total)) ? Number(total) : 0,
+    };
+  };
+
+  const fetchAssignmentTypes = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getPaginatedAssignmentTypes(currentPage, itemsPerPage);
+      const { list, total } = extractAssignmentTypesFromResponse(response);
+
+      setAllAssignmentTypes(list);
+      setTotalCount(total);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to fetch assignment types");
+      setAllAssignmentTypes([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage]);
+
   useEffect(() => {
-    const dummyData = [
-      { id: 1, assignment_type: "Permanent" },
-      { id: 2, assignment_type: "Temporary" },
-      { id: 3, assignment_type: "Contract" },
-      { id: 4, assignment_type: "Internship" },
-      { id: 5, assignment_type: "Remote" },
-    ];
-    setAllAssignmentTypes(dummyData);
-  }, []);
+    fetchAssignmentTypes();
+  }, [fetchAssignmentTypes]);
 
   /* ---------------- DELETE ---------------- */
-  const handleDelete = (id) => {
-    setAllAssignmentTypes((prev) =>
-      prev.filter((item) => item.id !== id)
-    );
-    toast.success("Deleted Successfully");
+  const handleDelete = async (id) => {
+    try {
+      await deleteAssignmentType(id);
+      toast.success("Deleted Successfully");
+
+      if (allAssignmentTypes.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+        return;
+      }
+
+      fetchAssignmentTypes();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Failed to delete assignment type");
+    }
   };
 
   /* ---------------- ADD / EDIT ---------------- */
-  const handleSubmit = (formData) => {
-    if (editMode) {
-      setAllAssignmentTypes((prev) =>
-        prev.map((item) =>
-          item.id === formData.id
-            ? { ...item, assignment_type: formData.assignment_type }
-            : item
-        )
-      );
-      toast.success("Updated Successfully");
-    } else {
-      setAllAssignmentTypes((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          assignment_type: formData.assignment_type,
-        },
-      ]);
-      toast.success("Added Successfully");
+  const handleSubmit = async (formData) => {
+    const payload = {
+      assignment_type: (formData?.assignment_type || "").trim(),
+    };
+
+    if (!payload.assignment_type) {
+      toast.error("Assignment type is required");
+      return;
     }
 
-    setOpenForm(false);
-    setEditMode(false);
-    setSelectedAssignmentType(null);
+    try {
+      if (editMode && formData?.id) {
+        await editAssignmentType(formData.id, payload);
+        toast.success("Updated Successfully");
+      } else {
+        await addAssignmentType(payload);
+        toast.success("Added Successfully");
+      }
+
+      setOpenForm(false);
+      setEditMode(false);
+      setSelectedAssignmentType(null);
+      fetchAssignmentTypes();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to save assignment type");
+    }
   };
 
   const handleEdit = (item) => {
@@ -147,14 +194,14 @@ const AssignmentTypes = () => {
             assignmentTypes={allAssignmentTypes}
             deleteAssignmentType={handleDelete}
             editAssignmentType={handleEdit}
-            currentPage={1}
-            itemsPerPage={10}
-            onPageChange={() => {}}
-            onLimitChange={() => {}}
-            onSearch={() => {}}
-            searchTerm=""
-            loading={false}
-            totalCount={allAssignmentTypes.length}
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onLimitChange={setItemsPerPage}
+            onSearch={setSearchTerm}
+            searchTerm={searchTerm}
+            loading={loading}
+            totalCount={totalCount}
           />
 
           {/* FORM */}

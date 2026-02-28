@@ -1,9 +1,5 @@
 import axiosInstance from "../../utils/axiosInstance";
 
-/* ==============================
-   GET APIs
-============================== */
-
 // Get paginated asset brands
 export const getPaginatedAssetBrands = (page = 1, limit = 10) => {
     return axiosInstance.get(`api/ams/asset-brands?page=${page}&limit=${limit}`);
@@ -23,10 +19,6 @@ export const getAssetBrandCombo = (fields = ['id', 'brand']) => {
 };
 
 
-/* ==============================
-   CRUD APIs
-============================== */
-
 // Add a new asset brand
 export const addAssetBrand = (payload) => {
     return axiosInstance.post('api/ams/asset-brands', payload);
@@ -42,17 +34,13 @@ export const deleteAssetBrand = (id) => {
     return axiosInstance.delete(`api/ams/asset-brands?id=${id}`);
 };
 
-
-/* ==============================
-   IMPORT EXCEL API
-============================== */
-
+// Import asset brands via file upload
 export const importAssetBrands = (file) => {
     const formData = new FormData();
     formData.append("file", file);
 
     return axiosInstance.post(
-        "api/ams/asset-brands/import",
+        "api/ams/asset-brands",
         formData,
         {
             headers: {

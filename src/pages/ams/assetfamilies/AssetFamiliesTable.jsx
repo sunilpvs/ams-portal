@@ -4,11 +4,11 @@ import { useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-function AssetGroupsTable({
-  groups = [],   // ✅ SAFE DEFAULT
+function AssetFamiliesTable({
+  families = [],   // ✅ SAFE DEFAULT
   totalCount = 0,
-  deleteGroup = () => {},
-  editGroup = () => {},
+  deleteFamily = () => {},
+  editFamily = () => {},
   currentPage = 1,
   itemsPerPage = 10,
   onPageChange = () => {},
@@ -19,24 +19,24 @@ function AssetGroupsTable({
 }) {
 
   const [sortConfig, setSortConfig] = useState({
-    key: "group",
+    key: "family",
     direction: "asc",
   });
 
   /* -------------------- SAFE FILTER -------------------- */
-  const filteredGroups = (groups || []).filter((group) =>
-    (group?.group || group?.name || "")
+  const filteredFamilies = (families || []).filter((family) =>
+    (family?.family || family?.name || "")
       .toLowerCase()
       .includes((searchTerm || "").toLowerCase())
   );
 
   /* -------------------- SORT -------------------- */
-  const sortedGroups = [...filteredGroups].sort((a, b) => {
+  const sortedFamilies = [...filteredFamilies].sort((a, b) => {
     const key = sortConfig.key;
     const dir = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue = (a?.[key] || a?.group || a?.name || "").toLowerCase();
-    const bValue = (b?.[key] || b?.group || b?.name || "").toLowerCase();
+    const aValue = (a?.[key] || a?.family || a?.name || "").toLowerCase();
+    const bValue = (b?.[key] || b?.family || b?.name || "").toLowerCase();
 
     if (aValue < bValue) return -1 * dir;
     if (aValue > bValue) return 1 * dir;
@@ -47,15 +47,11 @@ function AssetGroupsTable({
   const totalItems =
     Number.isFinite(totalCount) && totalCount > 0
       ? totalCount
-      : sortedGroups.length;
+      : sortedFamilies.length;
 
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
-
-  const paginatedGroups = sortedGroups.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  const paginatedFamilies = sortedFamilies.slice(startIndex, startIndex + itemsPerPage);
 
   const goToPage = (pageNum) => {
     if (pageNum >= 1 && pageNum <= totalPages) {
@@ -84,14 +80,14 @@ function AssetGroupsTable({
 
   /* -------------------- EXPORT -------------------- */
   const handleExportExcel = () => {
-    const exportData = sortedGroups.map((group, index) => ({
+    const exportData = sortedFamilies.map((family, index) => ({
       "Sr. No.": index + 1,
-      "Asset Group": group?.group || group?.name || "",
+      "Asset Family": family?.asset_family || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Groups");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Asset Families");
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
@@ -102,7 +98,7 @@ function AssetGroupsTable({
       type: "application/octet-stream",
     });
 
-    saveAs(fileData, "Asset_Group_List.xlsx");
+    saveAs(fileData, "Asset_Family_List.xlsx");
   };
 
   return (
@@ -115,7 +111,7 @@ function AssetGroupsTable({
           <div className="position-relative me-3 mb-2" style={{ flex: 1 }}>
             <input
               type="text"
-              placeholder="Search Asset Group..."
+              placeholder="Search Asset Family..."
               value={searchTerm}
               onChange={(e) => {
                 onSearch(e.target.value);
@@ -165,12 +161,12 @@ function AssetGroupsTable({
               <tr>
                 <th>Sr. No.</th>
                 <th
-                  onClick={() => handleSort("group")}
+                  onClick={() => handleSort("family")}
                   style={{ cursor: "pointer" }}
                 >
-                  Asset Group
+                  Asset Family
                   <span className="float-end">
-                    {getSortArrow("group")}
+                    {getSortArrow("family")}
                   </span>
                 </th>
                 <th>Actions</th>
@@ -181,31 +177,31 @@ function AssetGroupsTable({
               {loading ? (
                 <tr>
                   <td colSpan="3" className="text-muted">
-                    Loading asset groups...
+                    Loading asset families...
                   </td>
                 </tr>
-              ) : paginatedGroups.length === 0 ? (
+              ) : paginatedFamilies.length === 0 ? (
                 <tr>
                   <td colSpan="3" className="text-muted">
-                    No asset groups found.
+                    No asset families found.
                   </td>
                 </tr>
               ) : (
-                paginatedGroups.map((data, index) => (
+                paginatedFamilies.map((data, index) => (
                   <tr key={data.id}>
                     <td>{startIndex + index + 1}</td>
-                    <td>{data?.group || data?.name}</td>
+                    <td>{data?.asset_family}</td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
-                        onClick={() => editGroup(data)}
+                        onClick={() => editFamily(data)}
                       >
                         Edit
                       </button>
 
                       <button
                         className="btn btn-sm btn-outline-danger"
-                        onClick={() => deleteGroup(data.id)}
+                        onClick={() => deleteFamily(data.id)}
                       >
                         Delete
                       </button>
@@ -221,8 +217,8 @@ function AssetGroupsTable({
         {totalPages > 1 && (
           <div className="d-flex justify-content-between align-items-center mt-3">
             <div>
-              <strong>
-                Showing {paginatedGroups.length} of {totalItems} asset groups
+              <strong style={{ color: "#000" }}>
+                Showing {paginatedFamilies.length} of {totalItems} asset families
               </strong>
             </div>
 
@@ -266,11 +262,11 @@ function AssetGroupsTable({
 }
 
 /* -------------------- PROP TYPES -------------------- */
-AssetGroupsTable.propTypes = {
-  groups: PropTypes.array,
+AssetFamiliesTable.propTypes = {
+  families: PropTypes.array,
   totalCount: PropTypes.number,
-  deleteGroup: PropTypes.func,
-  editGroup: PropTypes.func,
+  deleteFamily: PropTypes.func,
+  editFamily: PropTypes.func,
   currentPage: PropTypes.number,
   itemsPerPage: PropTypes.number,
   onPageChange: PropTypes.func,
@@ -280,4 +276,4 @@ AssetGroupsTable.propTypes = {
   loading: PropTypes.bool,
 };
 
-export default AssetGroupsTable;
+export default AssetFamiliesTable;
