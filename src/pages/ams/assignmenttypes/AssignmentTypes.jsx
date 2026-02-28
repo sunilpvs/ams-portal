@@ -1,16 +1,15 @@
 import { useEffect, useState, useRef } from "react";
-import BrandsForm from "./BrandsForm";
-import BrandsTable from "./BrandsTable";
+import AssignmentTypeForm from "./AssignmentTypesForm";
+import AssignmentTypesTable from "./AssignmentTypesTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
 
-const Brands = () => {
-
-  const [allBrands, setAllBrands] = useState([]);
+const AssignmentTypes = () => {
+  const [allAssignmentTypes, setAllAssignmentTypes] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedAssignmentType, setSelectedAssignmentType] = useState(null);
 
   const [importResult, setImportResult] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -18,86 +17,86 @@ const Brands = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY BRAND DATA ---------------- */
+  /* ---------------- DUMMY DATA ---------------- */
   useEffect(() => {
     const dummyData = [
-      { id: 1, brand: "DELL" },
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "ASUS" },
-      { id: 5, brand: "ACER" }
+      { id: 1, assignment_type: "Permanent" },
+      { id: 2, assignment_type: "Temporary" },
+      { id: 3, assignment_type: "Contract" },
+      { id: 4, assignment_type: "Internship" },
+      { id: 5, assignment_type: "Remote" },
     ];
-    setAllBrands(dummyData);
+    setAllAssignmentTypes(dummyData);
   }, []);
 
   /* ---------------- DELETE ---------------- */
   const handleDelete = (id) => {
-    setAllBrands(prev => prev.filter(b => b.id !== id));
+    setAllAssignmentTypes((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
     toast.success("Deleted Successfully");
   };
 
   /* ---------------- ADD / EDIT ---------------- */
   const handleSubmit = (formData) => {
-
     if (editMode) {
-      setAllBrands(prev =>
-        prev.map(b =>
-          b.id === formData.id ? { ...b, brand: formData.brand } : b
+      setAllAssignmentTypes((prev) =>
+        prev.map((item) =>
+          item.id === formData.id
+            ? { ...item, assignment_type: formData.assignment_type }
+            : item
         )
       );
       toast.success("Updated Successfully");
     } else {
-      setAllBrands(prev => [
+      setAllAssignmentTypes((prev) => [
         ...prev,
-        { id: prev.length + 1, brand: formData.brand }
+        {
+          id: prev.length + 1,
+          assignment_type: formData.assignment_type,
+        },
       ]);
       toast.success("Added Successfully");
     }
 
     setOpenForm(false);
     setEditMode(false);
-    setSelectedBrand(null);
+    setSelectedAssignmentType(null);
   };
 
-  const handleEdit = (brand) => {
-    setSelectedBrand(brand);
+  const handleEdit = (item) => {
+    setSelectedAssignmentType(item);
     setEditMode(true);
     setOpenForm(true);
   };
 
   const handleAdd = () => {
-    setSelectedBrand({ brand: "" });
+    setSelectedAssignmentType({ assignment_type: "" });
     setEditMode(false);
     setOpenForm(true);
   };
 
-  /* ---------------- IMPORT (Dummy) ---------------- */
+  /* ---------------- IMPORT (Dummy Same As Brands) ---------------- */
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
 
   const handleFileChange = () => {
-
     const dummyImportResult = {
-      total_rows: 15,
-      inserted: 5,
-      skipped_duplicate_db: 10
+      total_rows: 12,
+      inserted: 4,
+      skipped_duplicate_db: 8,
     };
 
     const dummyDuplicates = [
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "LENOVO" },
-      { id: 5, brand: "LENOVO" },
-      { id: 6, brand: "LENOVO" },
-      { id: 7, brand: "LENOVO" },
-      { id: 8, brand: "LENOVO" },
-      { id: 9, brand: "LENOVO" },
-      { id: 10, brand: "LENOVO" },
-      { id: 11, brand: "LENOVO" },
-      { id: 12, brand: "LENOVO" },
-      { id: 13, brand: "LENOVO" },
-      { id: 14, brand: "LENOVO" }
+      { id: 2, assignment_type: "Temporary" },
+      { id: 3, assignment_type: "Contract" },
+      { id: 4, assignment_type: "Contract" },
+      { id: 5, assignment_type: "Contract" },
+      { id: 6, assignment_type: "Contract" },
+      { id: 7, assignment_type: "Contract" },
+      { id: 8, assignment_type: "Contract" },
+      { id: 9, assignment_type: "Contract" },
     ];
 
     setImportResult(dummyImportResult);
@@ -107,7 +106,6 @@ const Brands = () => {
     toast.success("Dummy Import Completed");
   };
 
-  /* ---------------- UPDATE DUPLICATES ---------------- */
   const handleUpdateDuplicates = () => {
     toast.success("Duplicate records updated (Frontend)");
     setShowImportModal(false);
@@ -120,11 +118,14 @@ const Brands = () => {
 
           {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Brand Management" subtitle="Admin / Brands" />
+            <Header
+              title="Assignment Type Management"
+              subtitle="Admin / Assignment Types"
+            />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
-                + Add Brand
+                + Add Assignment Type
               </button>
 
               <button className="btn btn-info" onClick={handleImportClick}>
@@ -141,11 +142,11 @@ const Brands = () => {
             </div>
           </div>
 
-          {/* MAIN TABLE */}
-          <BrandsTable
-            brands={Array.isArray(allBrands) ? allBrands : []}
-            deleteBrand={handleDelete}
-            editBrand={handleEdit}
+          {/* TABLE */}
+          <AssignmentTypesTable
+            assignmentTypes={allAssignmentTypes}
+            deleteAssignmentType={handleDelete}
+            editAssignmentType={handleEdit}
             currentPage={1}
             itemsPerPage={10}
             onPageChange={() => {}}
@@ -153,20 +154,20 @@ const Brands = () => {
             onSearch={() => {}}
             searchTerm=""
             loading={false}
-            totalCount={allBrands.length}
+            totalCount={allAssignmentTypes.length}
           />
 
           {/* FORM */}
           {openForm && (
-            <BrandsForm
-              data={selectedBrand}
+            <AssignmentTypeForm
+              data={selectedAssignmentType}
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
             />
           )}
 
-          {/* IMPORT RESULT MODAL */}
+          {/* IMPORT RESULT MODAL (Same Design as Brands) */}
           {showImportModal && importResult && (
             <div className="modal fade show d-block">
               <div className="modal-dialog modal-lg">
@@ -181,16 +182,16 @@ const Brands = () => {
                   </div>
 
                   <div className="modal-body">
-
                     <p><strong>Total Rows:</strong> {importResult.total_rows}</p>
                     <p><strong>Inserted:</strong> {importResult.inserted}</p>
                     <p><strong>Duplicate in DB:</strong> {importResult.skipped_duplicate_db}</p>
 
                     {duplicateRecords.length > 0 && (
                       <>
-                        <h6 className="text-danger mt-3">Duplicate Records Found</h6>
+                        <h6 className="text-danger mt-3">
+                          Duplicate Records Found
+                        </h6>
 
-                        {/* SCROLLABLE TABLE */}
                         <div style={{ maxHeight: "300px", overflowY: "auto" }}>
                           <table className="table table-bordered table-striped">
                             <thead
@@ -200,7 +201,7 @@ const Brands = () => {
                               <tr>
                                 <th>S.No</th>
                                 <th>ID</th>
-                                <th>Brand</th>
+                                <th>Assignment Type</th>
                                 <th>Status</th>
                               </tr>
                             </thead>
@@ -209,7 +210,7 @@ const Brands = () => {
                                 <tr key={row.id}>
                                   <td>{index + 1}</td>
                                   <td>{row.id}</td>
-                                  <td>{row.brand}</td>
+                                  <td>{row.assignment_type}</td>
                                   <td>
                                     <span className="text-danger fw-bold">
                                       Duplicate
@@ -251,4 +252,4 @@ const Brands = () => {
   );
 };
 
-export default Brands;
+export default AssignmentTypes;

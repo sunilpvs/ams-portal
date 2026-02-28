@@ -24,6 +24,12 @@ import AccessPending from "./pages/accessRequest/AccessPending";
 
 
 import Brands from "./pages/ams/brands/Brands";
+import AssignmentTypes from "./pages/ams/assignmenttypes/AssignmentTypes";
+import AssetGroups from "./pages/ams/assetgroups/AssetGroups";
+import AssetType from "./pages/ams/assettype/AssetType";
+import AssetCategory from "./pages/ams/assetcategory/AssetCategory";
+import AssetModels from "./pages/ams/assetmodels/AssetModels";
+import AssetInfo from "./pages/asset/assetinfo/AssetInfo";
 
 import NotFound404 from "./pages/error/404NotFound";
 
@@ -68,6 +74,12 @@ const AppRoutes = () => (
             <Route path="profile" element={<UserProfile />} />
             <Route path="activity" element={<ActivityLog />} />
              <Route path="brands" element={<Brands />} />
+             <Route path="assignmenttypes" element={<AssignmentTypes />} />
+             <Route path="assetgroups" element={<AssetGroups />} />
+             <Route path="assettype" element={<AssetType />} />
+             <Route path="assetcategory" element={<AssetCategory />} />
+             <Route path="assetmodels" element={<AssetModels />} />
+             <Route path="assetinfo" element={<AssetInfo />} />
         </Route>
 
         {/* Catch-all */}

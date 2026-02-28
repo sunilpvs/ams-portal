@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef } from "react";
-import BrandsForm from "./BrandsForm";
-import BrandsTable from "./BrandsTable";
+import AssetGroupForm from "./AssetGroupsForm";
+import AssetGroupTable from "./AssetGroupsTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
 
-const Brands = () => {
+const AssetGroups = () => {
 
-  const [allBrands, setAllBrands] = useState([]);
+  const [assetGroups, setAssetGroups] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedAssetGroup, setSelectedAssetGroup] = useState(null);
 
   const [importResult, setImportResult] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -18,21 +18,21 @@ const Brands = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY BRAND DATA ---------------- */
+  /* ---------------- DUMMY DATA ---------------- */
   useEffect(() => {
     const dummyData = [
-      { id: 1, brand: "DELL" },
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "ASUS" },
-      { id: 5, brand: "ACER" }
+      { id: 1, group: "Laptops" },
+      { id: 2, group: "Desktops" },
+      { id: 3, group: "Printers" },
+      { id: 4, group: "Monitors" },
+      { id: 5, group: "Networking Devices" }
     ];
-    setAllBrands(dummyData);
+    setAssetGroups(dummyData);
   }, []);
 
   /* ---------------- DELETE ---------------- */
   const handleDelete = (id) => {
-    setAllBrands(prev => prev.filter(b => b.id !== id));
+    setAssetGroups(prev => prev.filter(g => g.id !== id));
     toast.success("Deleted Successfully");
   };
 
@@ -40,33 +40,33 @@ const Brands = () => {
   const handleSubmit = (formData) => {
 
     if (editMode) {
-      setAllBrands(prev =>
-        prev.map(b =>
-          b.id === formData.id ? { ...b, brand: formData.brand } : b
+      setAssetGroups(prev =>
+        prev.map(g =>
+          g.id === formData.id ? { ...g, group: formData.group } : g
         )
       );
       toast.success("Updated Successfully");
     } else {
-      setAllBrands(prev => [
+      setAssetGroups(prev => [
         ...prev,
-        { id: prev.length + 1, brand: formData.brand }
+        { id: prev.length + 1, group: formData.group }
       ]);
       toast.success("Added Successfully");
     }
 
     setOpenForm(false);
     setEditMode(false);
-    setSelectedBrand(null);
+    setSelectedAssetGroup(null);
   };
 
-  const handleEdit = (brand) => {
-    setSelectedBrand(brand);
+  const handleEdit = (group) => {
+    setSelectedAssetGroup(group);
     setEditMode(true);
     setOpenForm(true);
   };
 
   const handleAdd = () => {
-    setSelectedBrand({ brand: "" });
+    setSelectedAssetGroup({ group: "" });
     setEditMode(false);
     setOpenForm(true);
   };
@@ -79,25 +79,25 @@ const Brands = () => {
   const handleFileChange = () => {
 
     const dummyImportResult = {
-      total_rows: 15,
+      total_rows: 20,
       inserted: 5,
-      skipped_duplicate_db: 10
+      skipped_duplicate_db: 15
     };
 
     const dummyDuplicates = [
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "LENOVO" },
-      { id: 5, brand: "LENOVO" },
-      { id: 6, brand: "LENOVO" },
-      { id: 7, brand: "LENOVO" },
-      { id: 8, brand: "LENOVO" },
-      { id: 9, brand: "LENOVO" },
-      { id: 10, brand: "LENOVO" },
-      { id: 11, brand: "LENOVO" },
-      { id: 12, brand: "LENOVO" },
-      { id: 13, brand: "LENOVO" },
-      { id: 14, brand: "LENOVO" }
+      { id: 2, group: "Desktops" },
+      { id: 3, group: "Printers" },
+      { id: 4, group: "Printers" },
+      { id: 5, group: "Printers" },
+      { id: 6, group: "Printers" },
+      { id: 7, group: "Printers" },
+      { id: 8, group: "Printers" },
+      { id: 9, group: "Printers" },
+      { id: 10, group: "Printers" },
+      { id: 11, group: "Printers" },
+      { id: 12, group: "Printers" },
+      { id: 13, group: "Printers" },
+      { id: 14, group: "Printers" }
     ];
 
     setImportResult(dummyImportResult);
@@ -120,11 +120,14 @@ const Brands = () => {
 
           {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Brand Management" subtitle="Admin / Brands" />
+            <Header
+              title="Asset Group Management"
+              subtitle="Admin / Asset Groups"
+            />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
-                + Add Brand
+                + Add Asset Group
               </button>
 
               <button className="btn btn-info" onClick={handleImportClick}>
@@ -141,11 +144,11 @@ const Brands = () => {
             </div>
           </div>
 
-          {/* MAIN TABLE */}
-          <BrandsTable
-            brands={Array.isArray(allBrands) ? allBrands : []}
-            deleteBrand={handleDelete}
-            editBrand={handleEdit}
+          {/* TABLE */}
+          <AssetGroupTable
+            assetGroups={assetGroups}
+            deleteAssetGroup={handleDelete}
+            editAssetGroup={handleEdit}
             currentPage={1}
             itemsPerPage={10}
             onPageChange={() => {}}
@@ -153,13 +156,13 @@ const Brands = () => {
             onSearch={() => {}}
             searchTerm=""
             loading={false}
-            totalCount={allBrands.length}
+            totalCount={assetGroups.length}
           />
 
           {/* FORM */}
           {openForm && (
-            <BrandsForm
-              data={selectedBrand}
+            <AssetGroupForm
+              data={selectedAssetGroup}
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
@@ -188,7 +191,9 @@ const Brands = () => {
 
                     {duplicateRecords.length > 0 && (
                       <>
-                        <h6 className="text-danger mt-3">Duplicate Records Found</h6>
+                        <h6 className="text-danger mt-3">
+                          Duplicate Records Found
+                        </h6>
 
                         {/* SCROLLABLE TABLE */}
                         <div style={{ maxHeight: "300px", overflowY: "auto" }}>
@@ -200,7 +205,7 @@ const Brands = () => {
                               <tr>
                                 <th>S.No</th>
                                 <th>ID</th>
-                                <th>Brand</th>
+                                <th>Group</th>
                                 <th>Status</th>
                               </tr>
                             </thead>
@@ -209,7 +214,7 @@ const Brands = () => {
                                 <tr key={row.id}>
                                   <td>{index + 1}</td>
                                   <td>{row.id}</td>
-                                  <td>{row.brand}</td>
+                                  <td>{row.group}</td>
                                   <td>
                                     <span className="text-danger fw-bold">
                                       Duplicate
@@ -251,4 +256,4 @@ const Brands = () => {
   );
 };
 
-export default Brands;
+export default AssetGroups;

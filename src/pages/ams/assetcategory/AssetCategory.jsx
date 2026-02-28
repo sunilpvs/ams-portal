@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef } from "react";
-import BrandsForm from "./BrandsForm";
-import BrandsTable from "./BrandsTable";
+import AssetCategoryForm from "./AssetCategoryForm";
+import AssetCategoryTable from "./AssetCategoryTable";
 import Header from "../../../components/Header";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast } from "react-hot-toast";
 
-const Brands = () => {
+const AssetCategory = () => {
 
-  const [allBrands, setAllBrands] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const [importResult, setImportResult] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -18,21 +18,20 @@ const Brands = () => {
 
   const fileInputRef = useRef(null);
 
-  /* ---------------- DUMMY BRAND DATA ---------------- */
+  /* ---------------- DUMMY DATA ---------------- */
   useEffect(() => {
     const dummyData = [
-      { id: 1, brand: "DELL" },
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "ASUS" },
-      { id: 5, brand: "ACER" }
+      { id: 1, category_name: "IT Equipment" },
+      { id: 2, category_name: "Office Equipment" },
+      { id: 3, category_name: "Furniture" },
+      { id: 4, category_name: "Networking" }
     ];
-    setAllBrands(dummyData);
+    setCategories(dummyData);
   }, []);
 
   /* ---------------- DELETE ---------------- */
   const handleDelete = (id) => {
-    setAllBrands(prev => prev.filter(b => b.id !== id));
+    setCategories(prev => prev.filter(c => c.id !== id));
     toast.success("Deleted Successfully");
   };
 
@@ -40,38 +39,40 @@ const Brands = () => {
   const handleSubmit = (formData) => {
 
     if (editMode) {
-      setAllBrands(prev =>
-        prev.map(b =>
-          b.id === formData.id ? { ...b, brand: formData.brand } : b
+      setCategories(prev =>
+        prev.map(c =>
+          c.id === formData.id
+            ? { ...c, category_name: formData.category_name }
+            : c
         )
       );
       toast.success("Updated Successfully");
     } else {
-      setAllBrands(prev => [
+      setCategories(prev => [
         ...prev,
-        { id: prev.length + 1, brand: formData.brand }
+        { id: prev.length + 1, category_name: formData.category_name }
       ]);
       toast.success("Added Successfully");
     }
 
     setOpenForm(false);
     setEditMode(false);
-    setSelectedBrand(null);
+    setSelectedCategory(null);
   };
 
-  const handleEdit = (brand) => {
-    setSelectedBrand(brand);
+  const handleEdit = (item) => {
+    setSelectedCategory(item);
     setEditMode(true);
     setOpenForm(true);
   };
 
   const handleAdd = () => {
-    setSelectedBrand({ brand: "" });
+    setSelectedCategory({ category_name: "" });
     setEditMode(false);
     setOpenForm(true);
   };
 
-  /* ---------------- IMPORT (Dummy) ---------------- */
+  /* ---------------- IMPORT (Dummy Like AssetType) ---------------- */
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -80,24 +81,16 @@ const Brands = () => {
 
     const dummyImportResult = {
       total_rows: 15,
-      inserted: 5,
-      skipped_duplicate_db: 10
+      inserted: 4,
+      skipped_duplicate_db: 11
     };
 
     const dummyDuplicates = [
-      { id: 2, brand: "HP" },
-      { id: 3, brand: "LENOVO" },
-      { id: 4, brand: "LENOVO" },
-      { id: 5, brand: "LENOVO" },
-      { id: 6, brand: "LENOVO" },
-      { id: 7, brand: "LENOVO" },
-      { id: 8, brand: "LENOVO" },
-      { id: 9, brand: "LENOVO" },
-      { id: 10, brand: "LENOVO" },
-      { id: 11, brand: "LENOVO" },
-      { id: 12, brand: "LENOVO" },
-      { id: 13, brand: "LENOVO" },
-      { id: 14, brand: "LENOVO" }
+      { id: 2, category_name: "Office Equipment" },
+      { id: 3, category_name: "Furniture" },
+      { id: 4, category_name: "Furniture" },
+      { id: 5, category_name: "Furniture" },
+      { id: 6, category_name: "Furniture" }
     ];
 
     setImportResult(dummyImportResult);
@@ -107,7 +100,6 @@ const Brands = () => {
     toast.success("Dummy Import Completed");
   };
 
-  /* ---------------- UPDATE DUPLICATES ---------------- */
   const handleUpdateDuplicates = () => {
     toast.success("Duplicate records updated (Frontend)");
     setShowImportModal(false);
@@ -120,11 +112,14 @@ const Brands = () => {
 
           {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Brand Management" subtitle="Admin / Brands" />
+            <Header
+              title="Asset Category Management"
+              subtitle="Admin / Asset Categories"
+            />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
-                + Add Brand
+                + Add Asset Category
               </button>
 
               <button className="btn btn-info" onClick={handleImportClick}>
@@ -141,25 +136,17 @@ const Brands = () => {
             </div>
           </div>
 
-          {/* MAIN TABLE */}
-          <BrandsTable
-            brands={Array.isArray(allBrands) ? allBrands : []}
-            deleteBrand={handleDelete}
-            editBrand={handleEdit}
-            currentPage={1}
-            itemsPerPage={10}
-            onPageChange={() => {}}
-            onLimitChange={() => {}}
-            onSearch={() => {}}
-            searchTerm=""
-            loading={false}
-            totalCount={allBrands.length}
+          {/* TABLE */}
+          <AssetCategoryTable
+            categories={categories}
+            deleteCategory={handleDelete}
+            editCategory={handleEdit}
           />
 
           {/* FORM */}
           {openForm && (
-            <BrandsForm
-              data={selectedBrand}
+            <AssetCategoryForm
+              data={selectedCategory}
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
@@ -188,19 +175,17 @@ const Brands = () => {
 
                     {duplicateRecords.length > 0 && (
                       <>
-                        <h6 className="text-danger mt-3">Duplicate Records Found</h6>
+                        <h6 className="text-danger mt-3">
+                          Duplicate Records Found
+                        </h6>
 
-                        {/* SCROLLABLE TABLE */}
                         <div style={{ maxHeight: "300px", overflowY: "auto" }}>
                           <table className="table table-bordered table-striped">
-                            <thead
-                              className="table-light"
-                              style={{ position: "sticky", top: 0, zIndex: 1 }}
-                            >
+                            <thead className="table-light">
                               <tr>
                                 <th>S.No</th>
                                 <th>ID</th>
-                                <th>Brand</th>
+                                <th>Asset Category</th>
                                 <th>Status</th>
                               </tr>
                             </thead>
@@ -209,7 +194,7 @@ const Brands = () => {
                                 <tr key={row.id}>
                                   <td>{index + 1}</td>
                                   <td>{row.id}</td>
-                                  <td>{row.brand}</td>
+                                  <td>{row.category_name}</td>
                                   <td>
                                     <span className="text-danger fw-bold">
                                       Duplicate
@@ -251,4 +236,4 @@ const Brands = () => {
   );
 };
 
-export default Brands;
+export default AssetCategory;
