@@ -12,6 +12,7 @@ import {
 } from "../../../services/ams/assetModelService";
 import { getAssetCategoryCombo } from "../../../services/ams/assetCategoryService";
 import { getAssetBrandCombo } from "../../../services/ams/assetBrandService";
+import { getAssetFamiliesCombo } from "../../../services/ams/assetFamilyService";
 
 const AssetModels = () => {
   const [models, setModels] = useState([]);
@@ -20,6 +21,7 @@ const AssetModels = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [totalCount, setTotalCount] = useState(0);
+  const [assetFamilies, setAssetFamilies] = useState([]);
   const [assetCategories, setAssetCategories] = useState([]);
   const [assetBrands, setAssetBrands] = useState([]);
 
@@ -88,11 +90,21 @@ const AssetModels = () => {
 
   const fetchAssetCategories = useCallback(async () => {
     try {
-      const response = await getAssetCategoryCombo(["id", "asset_category"]);
+      const response = await getAssetCategoryCombo(["id", "asset_category", "family_id"]);
       setAssetCategories(extractComboListFromResponse(response));
     } catch (error) {
       toast.error(error?.response?.data?.error || "Failed to fetch asset categories");
       setAssetCategories([]);
+    }
+  }, []);
+
+  const fetchAssetFamilies = useCallback(async () => {
+    try {
+      const response = await getAssetFamiliesCombo(["id", "family"]);
+      setAssetFamilies(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset families");
+      setAssetFamilies([]);
     }
   }, []);
 
@@ -111,9 +123,10 @@ const AssetModels = () => {
   }, [fetchModels]);
 
   useEffect(() => {
+    fetchAssetFamilies();
     fetchAssetCategories();
     fetchAssetBrands();
-  }, [fetchAssetCategories, fetchAssetBrands]);
+  }, [fetchAssetFamilies, fetchAssetCategories, fetchAssetBrands]);
 
   /* ---------------- DELETE ---------------- */
   const handleDeleteModel = async (id) => {
@@ -137,6 +150,7 @@ const AssetModels = () => {
     const payload = {
       asset_model: (formData?.asset_model || formData?.model || "").trim(),
       config: (formData?.config || "").trim(),
+      asset_type_id: Number(formData?.asset_type_id),
       asset_category_id: Number(formData?.asset_category_id),
       brand_id: Number(formData?.brand_id || formData?.asset_brand_id),
     };
@@ -153,6 +167,11 @@ const AssetModels = () => {
 
     if (!payload.asset_category_id) {
       toast.error("Asset category is required");
+      return;
+    }
+
+    if (!payload.asset_type_id) {
+      toast.error("Asset type is required");
       return;
     }
 
@@ -189,7 +208,9 @@ const AssetModels = () => {
     setSelectedModel({
       asset_model: "",
       config: "",
+      asset_family_id: "",
       asset_category_id: "",
+      asset_type_id: "",
       brand_id: "",
     });
     setEditMode(false);
@@ -236,7 +257,7 @@ const AssetModels = () => {
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
             <Header
               title="Asset Model Management"
-              subtitle="Admin / Asset Models"
+              subtitle="AMS / Asset Models"
             />
 
             <div className="d-flex gap-2">
@@ -282,7 +303,8 @@ const AssetModels = () => {
               add={handleSubmitModel}
               close={() => setOpenForm(false)}
               editMode={editMode}
-              assetCategories={assetCategories}
+              assetFamilies={assetFamilies}
+              allAssetCategories={assetCategories}
               assetBrands={assetBrands}
             />
           )}

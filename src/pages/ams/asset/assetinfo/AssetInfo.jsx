@@ -8,9 +8,14 @@ import {
   addAssetInfo,
   deleteAssetInfo,
   editAssetInfo,
+  getAssetInfoById,
   getPaginatedAssetInfo,
 } from "../../../../services/ams/assetInfoService";
+import { getAssetCategoryCombo } from "../../../../services/ams/assetCategoryService";
+import { getAssetFamiliesCombo } from "../../../../services/ams/assetFamilyService";
 import { getAssetModelCombo } from "../../../../services/ams/assetModelService";
+import { getAssetBrandCombo } from "../../../../services/ams/assetBrandService";
+import { getAssetTypeCombo } from "../../../../services/ams/assetTypeService";
 
 const AssetInfo = () => {
   const [assetInfos, setAssetInfos] = useState([]);
@@ -19,6 +24,10 @@ const AssetInfo = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [totalCount, setTotalCount] = useState(0);
+  const [assetFamilies, setAssetFamilies] = useState([]);
+  const [assetCategories, setAssetCategories] = useState([]);
+  const [assetTypes, setAssetTypes] = useState([]);
+  const [assetBrands, setAssetBrands] = useState([]);
   const [assetModels, setAssetModels] = useState([]);
 
   const [openForm, setOpenForm] = useState(false);
@@ -76,6 +85,46 @@ const AssetInfo = () => {
     }
   }, [currentPage, itemsPerPage]);
 
+  const fetchAssetFamilies = useCallback(async () => {
+    try {
+      const response = await getAssetFamiliesCombo(["id", "family"]);
+      setAssetFamilies(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset families");
+      setAssetFamilies([]);
+    }
+  }, []);
+
+  const fetchAssetCategories = useCallback(async () => {
+    try {
+      const response = await getAssetCategoryCombo(["id", "asset_category", "family_id"]);
+      setAssetCategories(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset categories");
+      setAssetCategories([]);
+    }
+  }, []);
+
+  const fetchAssetTypes = useCallback(async () => {
+    try {
+      const response = await getAssetTypeCombo(["id", "asset_type", "category_id"]);
+      setAssetTypes(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset types");
+      setAssetTypes([]);
+    }
+  }, []);
+
+  const fetchAssetBrands = useCallback(async () => {
+    try {
+      const response = await getAssetBrandCombo(["id", "brand"]);
+      setAssetBrands(extractComboListFromResponse(response));
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset brands");
+      setAssetBrands([]);
+    }
+  }, []);
+
   const fetchAssetModels = useCallback(async () => {
     try {
       const response = await getAssetModelCombo(["id", "asset_model"]);
@@ -91,8 +140,12 @@ const AssetInfo = () => {
   }, [fetchAssetInfo]);
 
   useEffect(() => {
+    fetchAssetFamilies();
+    fetchAssetCategories();
+    fetchAssetTypes();
+    fetchAssetBrands();
     fetchAssetModels();
-  }, [fetchAssetModels]);
+  }, [fetchAssetFamilies, fetchAssetCategories, fetchAssetTypes, fetchAssetBrands, fetchAssetModels]);
 
   const handleDelete = async (id) => {
     try {
@@ -112,12 +165,31 @@ const AssetInfo = () => {
 
   const handleSubmit = async (formData) => {
     const payload = {
+      asset_family_id: Number(formData?.asset_family_id),
+      asset_category_id: Number(formData?.asset_category_id),
+      asset_type_id: Number(formData?.asset_type_id),
+      asset_model_id: Number(formData?.asset_model_id),
       asset_serial_number: (formData?.asset_serial_number || "").trim(),
       asset_purchase_date: formData?.asset_purchase_date || "",
       asset_price: (formData?.asset_price || "").toString().trim(),
       asset_warranty_expiry: formData?.asset_warranty_expiry || "",
-      asset_model_id: (formData?.asset_model_id || "").toString(),
+      asset_extended_warranty: formData?.asset_extended_warranty || "",
     };
+
+    if (!payload.asset_family_id) {
+      toast.error("Asset family is required");
+      return;
+    }
+
+    if (!payload.asset_category_id) {
+      toast.error("Asset category is required");
+      return;
+    }
+
+    if (!payload.asset_type_id) {
+      toast.error("Asset type is required");
+      return;
+    }
 
     if (!payload.asset_serial_number) {
       toast.error("Asset serial number is required");
@@ -144,6 +216,11 @@ const AssetInfo = () => {
       return;
     }
 
+    if (!payload.asset_extended_warranty) {
+      toast.error("Extended expiry date is required");
+      return;
+    }
+
     try {
       if (editMode && formData?.id) {
         await editAssetInfo(formData.id, payload);
@@ -162,19 +239,38 @@ const AssetInfo = () => {
     }
   };
 
-  const handleEdit = (item) => {
-    setSelectedAssetInfo(item);
-    setEditMode(true);
-    setOpenForm(true);
+  const handleEdit = async (item) => {
+    try {
+      const response = await getAssetInfoById(item?.id);
+      const root = response?.data;
+      const payload = root?.data ?? root;
+      const assetInfoObj =
+        payload?.rows?.[0] ||
+        payload?.items?.[0] ||
+        payload?.asset_info?.[0] ||
+        payload?.asset_info ||
+        payload;
+
+      setSelectedAssetInfo(assetInfoObj || item);
+      setEditMode(true);
+      setOpenForm(true);
+    } catch (error) {
+      toast.error(error?.response?.data?.error || "Failed to fetch asset info details");
+    }
   };
 
   const handleAdd = () => {
     setSelectedAssetInfo({
+      asset_family_id: "",
+      asset_category_id: "",
+      asset_type_id: "",
+      brand_id: "",
+      asset_model_id: "",
       asset_serial_number: "",
       asset_purchase_date: "",
       asset_price: "",
       asset_warranty_expiry: "",
-      asset_model_id: "",
+      asset_extended_warranty: "",
     });
     setEditMode(false);
     setOpenForm(true);
@@ -214,7 +310,7 @@ const AssetInfo = () => {
       <div className="row justify-content-center">
         <div className="col-md-10">
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Asset Info Management" subtitle="Admin / Asset Info" />
+            <Header title="Asset Info Management" subtitle="AMS / Asset Info" />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
@@ -237,6 +333,10 @@ const AssetInfo = () => {
 
           <AssetInfoTable
             assetInfos={assetInfos}
+            assetFamilies={assetFamilies}
+            assetCategories={assetCategories}
+            assetTypes={assetTypes}
+            assetBrands={assetBrands}
             assetModels={assetModels}
             deleteAssetInfo={handleDelete}
             editAssetInfo={handleEdit}
@@ -256,7 +356,8 @@ const AssetInfo = () => {
               add={handleSubmit}
               close={() => setOpenForm(false)}
               editMode={editMode}
-              assetModels={assetModels}
+              assetFamilies={assetFamilies}
+              assetBrands={assetBrands}
             />
           )}
 

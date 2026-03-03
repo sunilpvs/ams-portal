@@ -167,7 +167,7 @@ const AssignmentTypes = () => {
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
             <Header
               title="Assignment Type Management"
-              subtitle="Admin / Assignment Types"
+              subtitle="AMS / Assignment Types"
             />
 
             <div className="d-flex gap-2">

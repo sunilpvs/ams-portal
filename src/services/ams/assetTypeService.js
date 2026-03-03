@@ -18,6 +18,11 @@ export const getAssetTypeById = (id) => {
     return axiosInstance.get(`api/ams/asset-types?id=${id}`);
 }
 
+// get asset types based on category ID
+export const getAssetTypeBasedOnCategoryId = (categoryId) => {
+    return axiosInstance.get(`api/ams/asset-types?type=filter&category_id=${categoryId}`);
+}
+
 // add new asset type
 export const addAssetType = (payload) => {
     return axiosInstance.post('api/ams/asset-types', payload);

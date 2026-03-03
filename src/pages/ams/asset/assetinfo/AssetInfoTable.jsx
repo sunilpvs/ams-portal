@@ -1,11 +1,16 @@
 import PropTypes from "prop-types";
 import { Box } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { getAssetBrandInfoFromModelId } from "../../../../services/ams/assetModelService";
 
 function AssetInfoTable({
   assetInfos = [],
+  assetFamilies = [],
+  assetCategories = [],
+  assetTypes = [],
+  assetBrands = [],
   assetModels = [],
   totalCount = 0,
   deleteAssetInfo = () => {},
@@ -18,12 +23,124 @@ function AssetInfoTable({
   searchTerm = "",
   loading = false,
 }) {
+  const TOTAL_COLUMNS = 12;
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    return date.toLocaleDateString("en-GB").replaceAll("/", "-");
+  }
+
+  const familyNameById = (assetFamilies || []).reduce((acc, family) => {
+    if (family?.id !== undefined && family?.id !== null) {
+      acc[String(family.id)] = family.family || family.asset_family || family.name || "";
+    }
+    return acc;
+  }, {});
+
+  const categoryNameById = (assetCategories || []).reduce((acc, category) => {
+    if (category?.id !== undefined && category?.id !== null) {
+      acc[String(category.id)] =
+        category.asset_category || category.category_name || category.name || "";
+    }
+    return acc;
+  }, {});
+
+  const typeNameById = (assetTypes || []).reduce((acc, type) => {
+    if (type?.id !== undefined && type?.id !== null) {
+      acc[String(type.id)] = type.asset_type || type.type_name || type.name || "";
+    }
+    return acc;
+  }, {});
+
+  const brandNameById = (assetBrands || []).reduce((acc, brand) => {
+    if (brand?.id !== undefined && brand?.id !== null) {
+      acc[String(brand.id)] = brand.brand || brand.brand_name || brand.name || "";
+    }
+    return acc;
+  }, {});
+
   const modelNameById = (assetModels || []).reduce((acc, model) => {
     if (model?.id !== undefined && model?.id !== null) {
       acc[String(model.id)] = model.asset_model || model.model || model.name || "";
     }
     return acc;
   }, {});
+
+  const [brandInfoByModelId, setBrandInfoByModelId] = useState({});
+
+  useEffect(() => {
+    const fetchBrandInfoByModel = async () => {
+      const uniqueModelIds = Array.from(
+        new Set(
+          (assetInfos || [])
+            .map((item) => item?.asset_model_id)
+            .filter((modelId) => modelId !== undefined && modelId !== null && modelId !== "")
+            .map((modelId) => String(modelId))
+        )
+      );
+
+      const pendingModelIds = uniqueModelIds.filter(
+        (modelId) => !brandInfoByModelId[modelId]
+      );
+
+      if (pendingModelIds.length === 0) {
+        return;
+      }
+
+      try {
+        const results = await Promise.all(
+          pendingModelIds.map(async (modelId) => {
+            const response = await getAssetBrandInfoFromModelId(modelId);
+            const root = response?.data;
+            const payload = root?.data ?? root;
+            const brandObj =
+              payload?.rows?.[0] ||
+              payload?.items?.[0] ||
+              payload?.data?.[0] ||
+              payload?.data ||
+              payload;
+
+            return {
+              modelId,
+              brand_id: brandObj?.brand_id,
+              asset_brand: brandObj?.asset_brand || brandObj?.brand || brandObj?.brand_name || "",
+            };
+          })
+        );
+
+        setBrandInfoByModelId((prev) => {
+          const next = { ...prev };
+          results.forEach((row) => {
+            next[String(row.modelId)] = row;
+          });
+          return next;
+        });
+      } catch {
+      }
+    };
+
+    fetchBrandInfoByModel();
+  }, [assetInfos, brandInfoByModelId]);
+
+  const resolveBrandDisplay = (item) => {
+    const modelBrand = brandInfoByModelId[String(item?.asset_model_id)];
+    const mappedByReturnedBrandId = modelBrand?.brand_id
+      ? brandNameById[String(modelBrand.brand_id)]
+      : "";
+
+    return (
+      brandNameById[String(item?.brand_id || item?.asset_brand_id)] ||
+      item?.brand ||
+      item?.asset_brand ||
+      mappedByReturnedBrandId ||
+      modelBrand?.asset_brand ||
+      item?.brand_id ||
+      item?.asset_brand_id ||
+      ""
+    );
+  };
 
   const [sortConfig, setSortConfig] = useState({
     key: "asset_serial_number",
@@ -34,10 +151,17 @@ function AssetInfoTable({
     const searchValue = String(searchTerm || "").toLowerCase();
 
     const combinedValues = [
+      familyNameById[String(item?.asset_family_id)],
+      categoryNameById[String(item?.asset_category_id)],
+      typeNameById[String(item?.asset_type_id)],
+      resolveBrandDisplay(item),
       item?.asset_serial_number,
       item?.asset_purchase_date,
       item?.asset_price,
       item?.asset_warranty_expiry,
+      item?.asset_extended_warranty,
+      item?.asset_model,
+      item?.model,
       modelNameById[String(item?.asset_model_id)],
     ]
       .map((value) => String(value || "").toLowerCase())
@@ -50,15 +174,58 @@ function AssetInfoTable({
     const key = sortConfig.key;
     const direction = sortConfig.direction === "asc" ? 1 : -1;
 
-    const aValue =
-      key === "asset_model"
-        ? String(modelNameById[String(a?.asset_model_id)] || "").toLowerCase()
-        : String(a?.[key] || "").toLowerCase();
+    const resolveDisplayValue = (row) => {
+      if (key === "asset_family") {
+        return String(
+          familyNameById[String(row?.asset_family_id)] ||
+            row?.asset_family ||
+            row?.family ||
+            row?.asset_family_id ||
+            ""
+        ).toLowerCase();
+      }
 
-    const bValue =
-      key === "asset_model"
-        ? String(modelNameById[String(b?.asset_model_id)] || "").toLowerCase()
-        : String(b?.[key] || "").toLowerCase();
+      if (key === "asset_category") {
+        return String(
+          categoryNameById[String(row?.asset_category_id)] ||
+            row?.asset_category ||
+            row?.category ||
+            row?.asset_category_id ||
+            ""
+        ).toLowerCase();
+      }
+
+      if (key === "asset_type") {
+        return String(
+          typeNameById[String(row?.asset_type_id)] ||
+            row?.asset_type ||
+            row?.type ||
+            row?.asset_type_id ||
+            ""
+        ).toLowerCase();
+      }
+
+      if (key === "asset_brand") {
+        return String(
+          resolveBrandDisplay(row)
+        ).toLowerCase();
+      }
+
+      if (key === "asset_model") {
+        return String(
+          modelNameById[String(row?.asset_model_id)] ||
+            row?.asset_model ||
+            row?.model ||
+            row?.asset_model_id ||
+            ""
+        ).toLowerCase();
+      }
+
+      return String(row?.[key] || "").toLowerCase();
+    };
+
+    const aValue = resolveDisplayValue(a);
+    const bValue = resolveDisplayValue(b);
 
     if (aValue < bValue) return -1 * direction;
     if (aValue > bValue) return 1 * direction;
@@ -92,11 +259,37 @@ function AssetInfoTable({
   const handleExportExcel = () => {
     const exportData = sortedAssetInfo.map((item, index) => ({
       "Sr. No.": index + 1,
+      "Asset Family":
+        familyNameById[String(item.asset_family_id)] ||
+        item.asset_family ||
+        item.family ||
+        item.asset_family_id ||
+        "",
+      "Asset Category":
+        categoryNameById[String(item.asset_category_id)] ||
+        item.asset_category ||
+        item.category ||
+        item.asset_category_id ||
+        "",
+      "Asset Type":
+        typeNameById[String(item.asset_type_id)] ||
+        item.asset_type ||
+        item.type ||
+        item.asset_type_id ||
+        "",
+      "Asset Brand":
+        resolveBrandDisplay(item),
+      "Asset Model":
+        modelNameById[String(item.asset_model_id)] ||
+        item.asset_model ||
+        item.model ||
+        item.asset_model_id ||
+        "",
       "Asset Serial Number": item.asset_serial_number || "",
       "Asset Purchase Date": item.asset_purchase_date || "",
       "Asset Price": item.asset_price || "",
       "Asset Warranty Expiry": item.asset_warranty_expiry || "",
-      "Asset Model": modelNameById[String(item.asset_model_id)] || item.asset_model_id || "",
+      "Extended Expiry Date": item.asset_extended_warranty || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -156,11 +349,29 @@ function AssetInfoTable({
           </div>
         </div>
 
-        <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-          <table className="table table-bordered table-hover text-center align-middle">
+        <div style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
+          <table
+            className="table table-bordered table-hover text-center align-middle"
+            style={{ whiteSpace: "nowrap" }}
+          >
             <thead className="table-dark" style={{ position: "sticky", top: 0 }}>
               <tr>
                 <th>Sr. No.</th>
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_family")}> 
+                  Asset Family{getSortArrow("asset_family")}
+                </th>
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_category")}> 
+                  Asset Category{getSortArrow("asset_category")}
+                </th>
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_type")}> 
+                  Asset Type{getSortArrow("asset_type")}
+                </th>
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_brand")}> 
+                  Asset Brand{getSortArrow("asset_brand")}
+                </th>
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_model")}> 
+                  Asset Model{getSortArrow("asset_model")}
+                </th>
                 <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_serial_number")}>
                   Asset Serial Number{getSortArrow("asset_serial_number")}
                 </th>
@@ -173,8 +384,8 @@ function AssetInfoTable({
                 <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_warranty_expiry")}>
                   Warranty Expiry{getSortArrow("asset_warranty_expiry")}
                 </th>
-                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_model")}>
-                  Asset Model{getSortArrow("asset_model")}
+                <th style={{ cursor: "pointer" }} onClick={() => handleSort("asset_extended_warranty")}> 
+                  Extended Expiry{getSortArrow("asset_extended_warranty")}
                 </th>
                 <th>Actions</th>
               </tr>
@@ -183,21 +394,49 @@ function AssetInfoTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7">Loading...</td>
+                  <td colSpan={TOTAL_COLUMNS}>Loading...</td>
                 </tr>
               ) : paginatedAssetInfo.length === 0 ? (
                 <tr>
-                  <td colSpan="7">No asset info found.</td>
+                  <td colSpan={TOTAL_COLUMNS}>No asset info found.</td>
                 </tr>
               ) : (
                 paginatedAssetInfo.map((item, index) => (
                   <tr key={item.id}>
                     <td>{startIndex + index + 1}</td>
+                    <td>
+                      {familyNameById[String(item.asset_family_id)] ||
+                        item.asset_family ||
+                        item.family ||
+                        item.asset_family_id}
+                    </td>
+                    <td>
+                      {categoryNameById[String(item.asset_category_id)] ||
+                        item.asset_category ||
+                        item.category ||
+                        item.asset_category_id}
+                    </td>
+                    <td>
+                      {typeNameById[String(item.asset_type_id)] ||
+                        item.asset_type ||
+                        item.type ||
+                        item.asset_type_id}
+                    </td>
+                    <td>
+                      {resolveBrandDisplay(item)}
+                    </td>
+                    <td>
+                      {modelNameById[String(item.asset_model_id)] ||
+                        item.asset_model ||
+                        item.model ||
+                        item.asset_model_id}
+                    </td>
                     <td>{item.asset_serial_number}</td>
-                    <td>{item.asset_purchase_date}</td>
+                    {/* show purchase date in DD-MM-YYYY format */}
+                    <td>{formatDate(item.asset_purchase_date)}</td>
                     <td>{item.asset_price}</td>
-                    <td>{item.asset_warranty_expiry}</td>
-                    <td>{modelNameById[String(item.asset_model_id)] || item.asset_model_id}</td>
+                    <td>{formatDate(item.asset_warranty_expiry)}</td>
+                    <td>{formatDate(item.asset_extended_warranty)}</td>
                     <td>
                       <button
                         className="btn btn-sm btn-outline-primary me-2"
@@ -266,6 +505,10 @@ function AssetInfoTable({
 
 AssetInfoTable.propTypes = {
   assetInfos: PropTypes.array,
+  assetFamilies: PropTypes.array,
+  assetCategories: PropTypes.array,
+  assetTypes: PropTypes.array,
+  assetBrands: PropTypes.array,
   assetModels: PropTypes.array,
   totalCount: PropTypes.number,
   deleteAssetInfo: PropTypes.func,

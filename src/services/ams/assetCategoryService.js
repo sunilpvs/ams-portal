@@ -16,6 +16,16 @@ export const getAssetCategoryById = (id) => {
   return axiosInstance.get(`api/ams/asset-categories?id=${id}`);
 }
 
+// get asset categories based on family ID
+export const getAssetCategoryBasedOnFamilyId = (familyId) => {
+    return axiosInstance.get(`api/ams/asset-categories?type=filter&family_id=${familyId}`);
+}
+
+// get asset family id from category id
+export const getAssetFamilyIdFromCategoryId = (categoryId) => {
+    return axiosInstance.get(`api/ams/asset-categories?type=family_id&category_id=${categoryId}`);
+}
+
 // add new asset category
 export const addAssetCategory = (payload) => {
   return axiosInstance.post('api/ams/asset-categories', payload);

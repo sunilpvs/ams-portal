@@ -219,7 +219,7 @@ const MyProSidebar = () => {
     fontSize: "18px",
   }}
 >
-  Asset Configurations
+  Asset Master Data
 </Typography>
 
 <MenuItem
@@ -236,18 +236,27 @@ const MyProSidebar = () => {
   Assignment Types
 </MenuItem>
 
+  <Typography
+  variant="subtitle2"
+  sx={{
+    mt: 3,
+    mb: 1,
+    ml: 1,
+    color: colors.grey[300],
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    fontSize: "18px",
+  }}
+>
+  Asset Configurations
+</Typography>
+
+
 <MenuItem
   icon={<LayersOutlinedIcon />}
   routerLink={<Link to="/asset-families" />}
 >
   Asset Family
-</MenuItem>
-
-<MenuItem
-  icon={<CategoryOutlinedIcon />}
-  routerLink={<Link to="/asset-type" />}
->
-  Asset Types
 </MenuItem>
 
 <MenuItem
@@ -258,11 +267,27 @@ const MyProSidebar = () => {
 </MenuItem>
 
 <MenuItem
+  icon={<CategoryOutlinedIcon />}
+  routerLink={<Link to="/asset-type" />}
+>
+  Asset Types
+</MenuItem>
+
+<MenuItem
   icon={<Inventory2OutlinedIcon />}
   routerLink={<Link to="/asset-models" />}
 >
   Asset Models
 </MenuItem>
+
+
+<MenuItem
+  icon={<Inventory2OutlinedIcon />}
+  routerLink={<Link to="/asset-info" />}
+>
+  Asset Info
+</MenuItem>
+
 
 
   <Typography
@@ -276,26 +301,15 @@ const MyProSidebar = () => {
     textTransform: "uppercase",
     fontSize: "18px",
   }}
->
-  Assets
-</Typography>
+>Asset Assignments</Typography>
 
-<MenuItem
-  icon={<Inventory2OutlinedIcon />}
-  routerLink={<Link to="/asset-info" />}
->
-  Asset Info
-</MenuItem>
-
+  
 <MenuItem
   icon={<AssignmentOutlinedIcon />}
   routerLink={<Link to="/assets/assignment" />}
 >
   Asset Assignment
-</MenuItem>
-
-
-                      
+</MenuItem>                      
 
                       
 

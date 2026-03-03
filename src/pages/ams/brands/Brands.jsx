@@ -171,7 +171,7 @@ const Brands = () => {
 
           {/* HEADER */}
           <div className="d-flex justify-content-between align-items-center mt-5 mb-3">
-            <Header title="Brand Management" subtitle="Admin / Brands" />
+            <Header title="Brand Management" subtitle="AMS / Brands" />
 
             <div className="d-flex gap-2">
               <button className="btn btn-primary" onClick={handleAdd}>
