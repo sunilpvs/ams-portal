@@ -1,13 +1,11 @@
 import axiosInstance from "../../utils/axiosInstance.js";
-import {getAMSAccessStatus} from "../admin/accessReqService";
-
+import { getAMSAccessStatus } from "../admin/accessReqService";
 
 // ------------------
 // Login
 // ------------------
 const loginUser = async ({ username, password }) => {
-  const payload = { username, password };
-  return await axiosInstance.post("auth/login.php", payload);
+  return await axiosInstance.post("auth/login.php", { username, password });
 };
 
 export default loginUser;
@@ -25,33 +23,30 @@ export const logoutUser = async () => {
   }
 };
 
-
+// ------------------
+// Auth + Access Flow
+// ------------------
 export const checkAuth = async () => {
   try {
-    const auth_response = await axiosInstance.get("auth/check.php?portal=ams");
+    const authRes = await axiosInstance.get("auth/check.php");
 
-    if (auth_response?.status === 200) {
-      try {
-        const access_response = await getAMSAccessStatus();
-
-        if (access_response?.status === 200) {
-          return { authenticated: true, status: "Granted" };
-        }
-      } catch (accessErr) {
-        if (accessErr.response?.status === 403) {
-          const reqStatus = accessErr.response?.data?.req_status;
-          return { authenticated: true, status: reqStatus };
-        }
-        throw accessErr; // other errors bubble up
-      }
+    if (authRes.status !== 200) {
+      return { authenticated: false };
     }
 
-    return { authenticated: false, status: null };
+    const accessRes = await getAMSAccessStatus();
+
+    return {
+      authenticated: true,
+      status: accessRes.status || "no_request"
+    };
+
   } catch (err) {
+    if (err.response?.status === 401) {
+      return { authenticated: false };
+    }
+
     console.error("checkAuth failed:", err);
-    return { authenticated: false, status: null };
+    return { authenticated: false };
   }
 };
-
-
-
